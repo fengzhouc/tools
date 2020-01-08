@@ -22,7 +22,7 @@ def mapfunc(tg):
 def googlehack_domain(*args):
     """
     google hack search subdomain
-    :param args: [search, nextxpath, xpath..]
+    :param args: [search, filename, nextxpath, othermessagexpath..]
     :return list like [(d1,x1,y1),(d2,x2,y2)]
     """
     search = args[0]
