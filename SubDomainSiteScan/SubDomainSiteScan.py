@@ -28,10 +28,7 @@ with open(args_file) as f:
         imess = getStatusAndTtile.getStatusAndTitle(indexurl, redirect=True)
 
         # 请求失败的情况
-        if rmess[1] is None:  
-            eList.append(rmess)
-            continue
-        elif imess[2] is None:
+        if (imess[1] is None) or (rmess[2] is None):
             eList.append(imess)
             continue
         # 状态码5xx，且主页状态码相同
