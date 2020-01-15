@@ -9,7 +9,7 @@ def getStatusAndTitle(url, redirect=False):
     发送请求，获取状态码及title
     :param redirect: 是否跟进重定向
     :param url: 请求的url
-    :return: list [url，status，title]
+    :return: list [url，rediect_url, status，title]
     """
     # 结果保存
     result = [url, ]
@@ -17,9 +17,9 @@ def getStatusAndTitle(url, redirect=False):
         raise ValueError("url is none.")
 
     try:
-        # 默认是遇到重定向会跟进,allow_redirects控制是否跟进，这里不跟进主要是因为，如果协议不对的话，跟进后就进入的主页
-        resp = requests.get(url, allow_redirects=redirect)
-        # print(resp.is_redirect)
+        # 获取请求响应
+        resp = getResp(url, redirect=redirect)
+
         result.append(resp.url)
         status = resp.status_code
         result.append(status)
@@ -36,6 +36,24 @@ def getStatusAndTitle(url, redirect=False):
     print(result)
     return result
 
+
+def getResp(url, redirect=False):
+    """
+    获取响应，不过对状态码判断是否重定向，若重定向则递归获取最后的请求响应
+    :param url: 请求的url
+    :param redirect: 是否跟进重定向
+    :return: 请求响应
+    """
+    # 默认是遇到重定向会跟进, allow_redirects控制是否跟进，这里不跟进主要是因为，如果协议不对的话，跟进后就进入的主页
+    resp = requests.get(url, allow_redirects=redirect)
+    if resp.is_redirect:
+        location = resp.headers.get("Location")
+        # 默认是发起http请求，如果使用的是https，重定向是到主页的，对于随机url就丢失了，这里做下处理
+        if not url.endswith("/") and str(location).endswith("/"):
+            location += url.split("/").pop()
+        # print(location)
+        resp = getResp(location)
+    return resp
 
 def getTitle(resp):
     """
@@ -55,4 +73,4 @@ def getTitle(resp):
 
 
 if __name__ == "__main__":
-    getStatusAndTitle("http://www.vip.com/sdfas", redirect=False)
+    getStatusAndTitle("http://vip.com/sdfas", redirect=False)
