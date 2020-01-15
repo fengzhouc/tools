@@ -2,7 +2,7 @@
 
 import sys
 from util.getRandomUrl import getRandomUrl
-from util.getStatusAndTtile import getStatusAndTtile
+from util.getStatusAndTtile import getStatusAndTitle
 from util.report import report
 from lib.cmdline import parse_args
 
@@ -12,11 +12,11 @@ args_file = argv.f
 
 # 结果分类
 nList = []  # 正常
-n_file = "n_file"
+n_file = "normal_site"
 eList = []  # 死站
-e_file = "e_file"
+e_file = "die_site"
 oList = []  # 其他
-o_file = "o_file"
+o_file = "other_site"
 
 with open(args_file) as f:
     for dm in f:
