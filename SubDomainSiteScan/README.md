@@ -1,5 +1,7 @@
 # SubDomainSiteScan 
 
+Note: python 3.6
+
 ## 功能
 
 对收集的子域名站点进行筛查，并进行分类，根据什么进行判读呢？
