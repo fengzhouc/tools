@@ -44,6 +44,6 @@ with open(args_file) as f:
             oList.append(imess)
 
     # 写报告
-    report.report(n_file, nList)
-    report.report(e_file, eList)
-    report.report(o_file, oList)
+    report(n_file, nList)
+    report(e_file, eList)
+    report(o_file, oList)
