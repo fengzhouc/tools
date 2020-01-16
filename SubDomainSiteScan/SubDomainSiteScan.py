@@ -36,7 +36,7 @@ def scan_process(dm, n_results, e_results, o_results):
     # 因为请求的时候重定向已处理跟进，所以不会有3xx状态码
     # 主要条件：不存在url请求的状态码2xx或404 且 主页请求的状态码2xx 且 title不同
     # 比较title主要怕正常、异常响应都一样；一般主页肯定是有title，如果是异常返回json的情况，就会没有title，所以只要不一样就可以
-    # 主要覆盖的情况
+    # 例外场景：不存在的资源请求错误处理是返回主页
     if (str(rmess[2]).startswith("2") or rmess[2] == 404) and (str(imess[2]).startswith("2")) and (
             rmess[3] != imess[3]):
         n_results.put(imess)

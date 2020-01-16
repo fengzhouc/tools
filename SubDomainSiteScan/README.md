@@ -79,6 +79,8 @@ Note: python 3.6
 
 - util/getRandomUrl.py        生成随机资源url，不存在的资源url，入参：子域名，返回：随机
 
-- urlutil/report.py              输出报告文件，入参：报告文件名，数据列表【url，status，title】，返回：无
+- urlutil/report.py           输出报告文件，入参：报告文件名，数据列表【url，status，title】，返回：无
+
+- lib/cmdline.py              解析命令行参数
 
 - report                      报告目录
