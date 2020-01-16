@@ -10,6 +10,7 @@ from lib.cmdline import parse_args
 # 设置超时时间，防止请求时间过长导致程序长时间停止
 socket.setdefaulttimeout(5)
 
+
 def scan_process(dm, n_results, e_results, o_results):
     """
     线程函数
@@ -23,25 +24,26 @@ def scan_process(dm, n_results, e_results, o_results):
     rurl = getRandomUrl(dm)
     # 获取不存在资源的响应信息，不跟进重定向，getStatusAndTitle函数已处理
     rmess = getStatusAndTitle(rurl)
+    # 请求失败的情况，或状态码5xx
+    if (rmess[1] is None) or (str(rmess[2]).startswith("5")):
+        e_results.put(rmess)
+        return
+
     # 获取主页url
     indexurl = getRandomUrl(dm, index=True)
     # 获取主页信息，不跟进重定向，getStatusAndTitle函数已处理
     imess = getStatusAndTitle(indexurl)
-
-    # 请求失败的情况
-    if (imess[1] is None) or (rmess[2] is None):
-        e_results.put(imess)
-        return
-    # 状态码5xx，且主页状态码相同
-    if str(rmess[2]).startswith("5") and rmess[2] == imess[2]:
-        e_results.put(imess)
     # 因为请求的时候重定向已处理跟进，所以不会有3xx状态码
-    # 状态码2xx、4xx,主页状态码2xx，有种可能都是2xx不正常的页面，但是没想到很好的识别方法，后期补充
-    elif (str(rmess[2]).startswith("2") or rmess[2] == 404) and imess[2] == 200:
+    # 主要条件：不存在url请求的状态码2xx或404 且 主页请求的状态码2xx 且 title不同
+    # 比较title主要怕正常、异常响应都一样；一般主页肯定是有title，如果是异常返回json的情况，就会没有title，所以只要不一样就可以
+    # 主要覆盖的情况
+    if (str(rmess[2]).startswith("2") or rmess[2] == 404) and (str(imess[2]).startswith("2")) and (
+            rmess[3] != imess[3]):
         n_results.put(imess)
     else:
         o_results.put(imess)
     pass
+
 
 def getresult(n_results, e_results, o_results):
     """
@@ -60,13 +62,14 @@ def getresult(n_results, e_results, o_results):
         while o_results.qsize() > 0:
             oList.append(o_results.get())
 
+
 if __name__ == "__main__":
     # 命令行获取domain file
     argv = parse_args()
     args_file = argv.f
     _pool = 16
     if argv.p:
-        _pool = argv.p
+        _pool = int(argv.p)
 
     # 结果分类
     nList = []  # 正常
@@ -87,7 +90,7 @@ if __name__ == "__main__":
         # 处理队列中结果的线程
         threading.Thread(target=getresult, args=(n_results, e_results, o_results)).start()
 
-        p = multiprocessing.Pool(16)
+        p = multiprocessing.Pool(_pool)
         with open(args_file) as f:
             for dm in f:
                 # scan_process(dm, nList, eList, oList)
