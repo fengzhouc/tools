@@ -204,6 +204,7 @@ if __name__ == "__main__":
         # 所有进程任务执行完成后，为了保证报告线程能处理完队列中的数据
         time.sleep(5)
         STOP_ME = True
+        print("\nAll done.")
     except KeyboardInterrupt as e:
         print('You aborted the scan.')
         exit(1)
