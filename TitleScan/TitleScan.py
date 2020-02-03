@@ -181,8 +181,9 @@ if __name__ == "__main__":
     _pool = 8
     if argv.p:
         _pool = int(argv.p)
+    # args_file = "1.txt"
+    # _pool = 1
 
-    # lock = threading.Lock()
     global_lock = multiprocessing.Manager().Lock()
     a_results = multiprocessing.Manager().Queue()
     b_results = multiprocessing.Manager().Queue()
