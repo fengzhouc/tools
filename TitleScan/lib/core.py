@@ -81,7 +81,6 @@ def getTitle(resp):
     else:
         # print("[debug] %s", titleS.text)
         return _title.text
-    pass
 
 
 def getUrl(domain, index=False, https=False):
@@ -108,5 +107,5 @@ def getUrl(domain, index=False, https=False):
 
 
 if __name__ == "__main__":
-    getStatusAndTitle("https://vip.com:443/sdfas", redirect=False)
+    getStatusAndTitle("vip.com:443", redirect=False)
     getUrl("sdfasd", https=True)

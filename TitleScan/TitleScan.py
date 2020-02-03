@@ -1,5 +1,5 @@
 # encoding=utf-8
-
+import os
 import socket
 import threading, multiprocessing
 import time
@@ -22,7 +22,7 @@ def scan_process(dm, a_results, b_results, c_results, d_results):
     :param d_results: 不是网站
     :return:
     """
-
+    # print("scan_process[{}]: {}".format(os.getpid(), dm), end="\r")
     # 是否https
     _https = False
     # 获取不存在的url
@@ -149,6 +149,7 @@ def getresult():
     cline = 0
     dline = 0
     while not STOP_ME:
+        print("[#Report_Thread] A:{} B:{} C:{} D:{} total:{}".format(aline, bline, cline, dline, aline+bline+cline+dline), end="\r")
         if a_results.qsize() > 0:
             aline = writerdata(a, a_results.get(), aline)
         if b_results.qsize() > 0:
@@ -158,7 +159,6 @@ def getresult():
         if d_results.qsize() > 0:
             dline = writerdata(d, d_results.get(), dline)
     wb.save("./report/{}.xls".format(str(time.time())))
-    print("A类：{}\nB类：{}\nC类：{}\nD类：{}\ntotal：{}".format(aline, bline, cline, dline, aline+bline+cline+dline))
 
 def writerdata(worksheet, message, row):
     """
@@ -168,7 +168,7 @@ def writerdata(worksheet, message, row):
     :param row:  当前sheet已写了多少行，在+1行继续写入
     :return: 返回写完后的行数
     """
-    print(message)
+    # print(message)
     row += 1
     for column, m in enumerate(message):
         worksheet.write(row, column, m)
@@ -201,11 +201,13 @@ if __name__ == "__main__":
                 p.apply_async(scan_process, args=(dm, a_results, b_results, c_results, d_results))
         p.close()
         p.join()
-        print("Main process stop.")
-    except KeyboardInterrupt as e:
+        # 所有进程任务执行完成后，为了保证报告线程能处理完队列中的数据
+        time.sleep(5)
         STOP_ME = True
+    except KeyboardInterrupt as e:
         print('You aborted the scan.')
         exit(1)
     except Exception as e:
         print('[__main__.exception] %s %s' % (type(e), str(e)))
-    STOP_ME = True
+    finally:
+        STOP_ME = True
