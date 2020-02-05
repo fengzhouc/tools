@@ -22,7 +22,7 @@ def scan_process(dm, a_results, b_results, c_results, d_results):
     :param d_results: 不是网站
     :return:
     """
-    # print("scan_process[{}]: {}".format(os.getpid(), dm), end="\r")
+    # print("scan_process start[{}]: {}".format(os.getpid(), dm))
     # 是否https
     _https = False
     # 获取不存在的url
@@ -50,7 +50,6 @@ def scan_process(dm, a_results, b_results, c_results, d_results):
         # 如果包含关键字，则是状态码为200的错误页面，这种情况错误处理是自定义的，基本可以判断是正常网站，直接存入A类
         if _is404:
             a_results.put(_mess.values())
-            return
         # 如果不包含，则需要进一步确认主页
         else:
             r = getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
@@ -59,35 +58,30 @@ def scan_process(dm, a_results, b_results, c_results, d_results):
                 # 如果已经确认2次了，则直接保存结果，否则重新请求主页确认，访问次数+1，以第二次访问的结果为准保存
                 r = getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
                 r.put(_mess.values())
-                return
             else:
                 r.put(_mess.values())
-                return
 
     # 状态码404，进行分支访问主页继续判断
-    if _mess.get("status") == 404:
+    elif _mess.get("status") == 404:
         r = getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
         # 如果是处200/401/407/415的其他状态码，则重新请求请求再确认一次
         if r is c_results:
             # 如果已经确认2次了，则直接保存结果，否则重新请求主页确认，访问次数+1，以第二次访问的结果为准保存
             r = getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
             r.put(_mess.values())
-            return
         else:
             r.put(_mess.values())
-            return
 
     # 判断状态码是否401,407,415，都是需要认证的
-    if _mess.get("status") in [401, 403, 407, 415]:
+    elif _mess.get("status") in [401, 403, 407, 415]:
         b_results.put(_mess.values())
-        return
 
     # 判断是否有状态码，有则是不正常网站，否则可能不是网站
-    if _mess.get("status") is None:
+    elif _mess.get("status") is None:
         d_results.put(_mess.values())
     else:
         c_results.put(_mess.values())
-
+    # print("scan_process over[{}]".format(os.getpid()))
 
 def getindexmess(dm, mess404, _is404, _https, a_results, b_results, c_results, d_results):
     """
@@ -149,7 +143,7 @@ def getresult():
     cline = 0
     dline = 0
     while not STOP_ME:
-        print("[#Report_Thread] A:{} B:{} C:{} D:{} total:{}".format(aline, bline, cline, dline, aline+bline+cline+dline), end="\r")
+        print("[#Report_Thread] A:{} B:{} C:{} D:{} total:{} ".format(aline, bline, cline, dline, aline+bline+cline+dline), end="\r")
         if a_results.qsize() > 0:
             aline = writerdata(a, a_results.get(), aline)
         if b_results.qsize() > 0:
