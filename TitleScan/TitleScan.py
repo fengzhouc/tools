@@ -131,6 +131,8 @@ def getresult():
     d = wb.add_sheet("D类 不是网站")
     for column, m in enumerate(column_keys):
         d.write(0, column, m)
+    # 报告文件名以时间
+    report_filename = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
 
     global STOP_ME
     global a_results
@@ -152,7 +154,8 @@ def getresult():
             cline = writerdata(c, c_results.get(), cline)
         if d_results.qsize() > 0:
             dline = writerdata(d, d_results.get(), dline)
-    wb.save("./report/{}.xls".format(str(time.time())))
+    wb.save("./report/{}.xls".format(report_filename))
+    print("report save success, file name: {}.xls".format(report_filename))
 
 def writerdata(worksheet, message, row):
     """
