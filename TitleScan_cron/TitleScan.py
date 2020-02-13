@@ -58,7 +58,9 @@ async def scan_process(dm, a_results, b_results, c_results, d_results):
                 r.put(_mess.values())
             else:
                 r.put(_mess.values())
-
+    # 状态码30x，A类
+    elif str(_mess.get("status")).startswith("30"):
+        a_results.put(_mess.values())
     # 状态码404，进行分支访问主页继续判断
     elif _mess.get("status") == 404:
         r = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
@@ -97,6 +99,9 @@ async def getindexmess(dm, mess404, _is404, _https, a_results, b_results, c_resu
         if _is404 and (mess404.get("header_count") == _mess_index.get("header_count")) and (
                 mess404.get("content_length") == _mess_index.get("content_length")):
             return c_results
+        return a_results
+    # 状态码30x，A类
+    if str(_mess_index.get("status")).startswith("30"):
         return a_results
     # 判断状态码是否401,403,407,415，都是需要认证的
     if mess404.get("status") in [401, 403, 407, 415]:
@@ -167,6 +172,24 @@ def writerdata(worksheet, message, row):
         worksheet.write(row, column, m)
     return row
 
+# 事件循环的线程
+def thread_running_loop(lp):
+    # 设置当前线程的事件循环
+    asyncio.set_event_loop(lp)
+    try:
+        lp.run_forever()
+    except Exception as e:
+        print("\tthread is done: ", e)
+    finally:
+        lp.close()
+
+
+async def stop_it():
+    # 取消所有未完成的任务
+    t = [task.cancle() for task in asyncio.Task.all_tasks() if not task.done()]
+    lp = asyncio.get_running_loop()
+    lp.stop()
+
 if __name__ == "__main__":
     # 命令行获取domain file
     argv = parse_args()
@@ -184,27 +207,25 @@ if __name__ == "__main__":
     d_results = queue.Queue()
 
     STOP_ME = False
+    # 新建事件循环对象
+    loop = asyncio.new_event_loop()
+
     try:
         # 处理队列中结果的线程
         threading.Thread(target=getresult).start()
-        # 获取主线程的事件循环对象
-        loop = asyncio.get_event_loop()
-        # 协程任务列表
-        tasks = []
-        # 所有任务执行完成标识
-        flag = False
+        # 启动事件循环的线程
+        threading.Thread(target=thread_running_loop, args=(loop,)).start()
+        # 动态添加任务
         with open(args_file) as f:
-            while not flag:
-                for dm in f:
-                    tasks.append(scan_process(dm, a_results, b_results, c_results, d_results))
-                    if len(tasks) >= _pool:
-                        break
-                if not tasks:
-                    flag = True
-                async_task = asyncio.gather(*tasks)
-                loop.run_until_complete(async_task)
-                tasks.clear()
-        loop.close()
+            for dm in f:
+                asyncio.run_coroutine_threadsafe(scan_process(dm, a_results, b_results, c_results, d_results), loop)
+        # 阻塞主线程，待所有任务都执行完成
+        while True:
+            num_active_tasks = len([task for task in asyncio.Task.all_tasks(loop) if not task.done()])
+            if num_active_tasks == 0:
+                break
+        # 关闭事件循环
+        asyncio.run_coroutine_threadsafe(stop_it(), loop)
         # 所有任务执行完成后，为了保证报告线程能处理完队列中的数据
         time.sleep(5)
         STOP_ME = True
@@ -213,10 +234,11 @@ if __name__ == "__main__":
         STOP_ME = True
         print('\nYou aborted the scan.')
         exit(1)
-    # except Exception as e:
-    #     STOP_ME = True
-    #     # print('\n[__main__.exception] %s %s' % (type(e), str(e)))
-    #     print(e)
-    #     exit(1)
+    except Exception as e:
+        STOP_ME = True
+        print('\n[__main__.exception] %s %s' % (type(e), str(e)))
+        exit(1)
     finally:
         STOP_ME = True
+        # 关闭事件循环
+        asyncio.run_coroutine_threadsafe(stop_it(), loop)
