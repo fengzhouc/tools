@@ -1,4 +1,6 @@
 # encoding=utf-8
+import functools
+
 import aiohttp
 import requests
 from bs4 import BeautifulSoup
@@ -47,7 +49,6 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
     # print(result)
     return result
 
-
 async def getResp(url, redirect=False):
     """
     获取响应，不过对状态码判断是否重定向，若重定向则递归获取最后的请求响应
@@ -55,15 +56,24 @@ async def getResp(url, redirect=False):
     :param redirect: 是否跟进重定向
     :return: 请求响应
     """
+    await asyncio.sleep(0)
     # 默认是遇到重定向会跟进, allow_redirects控制是否跟进，这里不跟进主要是因为，如果协议不对的话，跟进后就进入的主页
-    resp = await asyncio.get_event_loop().run_in_executor(None, requests.get, url)
-    if resp.is_redirect:
-        location = resp.headers.get("Location")
-        # 默认是发起http请求，如果使用的是https，出现302重定向是到主页的，对于随机url就丢失了，这里做下处理
-        if not url.endswith("/") and str(location).endswith("/"):
-            location += url.split("/").pop()
-        # print(location)
-        resp = getResp(location)
+    resp = requests.get(url, allow_redirects=redirect)
+    return resp
+
+async def getResp1(url, redirect=False):
+    """
+    获取响应，不过对状态码判断是否重定向，若重定向则递归获取最后的请求响应
+    :param url: 请求的url
+    :param redirect: 是否跟进重定向
+    :return: 请求响应
+    """
+    # requests是同步的，不支持协程，解决办法就是使用run_in_executor，
+    # 参考：https://stackoverflow.com/questions/22190403/how-could-i-use-requests-in-asyncio
+    # functools.partial传入*args，**kwargs参数
+    resp = await asyncio.get_event_loop().run_in_executor(None,
+                                                          functools.partial(requests.get, allow_redirects=redirect),
+                                                          url)
     return resp
     # async with aiohttp.ClientSession() as session:
     #     async with session.get(url, allow_redirects=redirect, timeout=5) as resp:

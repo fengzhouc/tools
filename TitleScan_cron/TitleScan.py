@@ -186,7 +186,7 @@ def thread_running_loop(lp):
 
 async def stop_it():
     # 取消所有未完成的任务
-    t = [task.cancle() for task in asyncio.Task.all_tasks() if not task.done()]
+    t = [task.cancel() for task in asyncio.Task.all_tasks() if not task.done()]
     lp = asyncio.get_running_loop()
     lp.stop()
 
