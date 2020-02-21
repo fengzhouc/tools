@@ -53,30 +53,31 @@ async def scan_process(dm, result_queue=None):
             a_results.put(_mess.values())
         # 如果不包含，则需要进一步确认主页
         else:
-            r = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
+            r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
             # 如果是处200/401/407/415的其他状态码，则重新请求请求再确认一次
             if r is c_results:
                 # 如果已经确认2次了，则直接保存结果，否则重新请求主页确认，访问次数+1，以第二次访问的结果为准保存
-                r = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
-                r.put(_mess.values())
+                r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
+                r.put(index_mess.values())
             else:
-                r.put(_mess.values())
+                r.put(index_mess.values())
     # 状态码30x，A类
     elif str(_mess.get("status")).startswith("30"):
         a_results.put(_mess.values())
     # 状态码404，进行分支访问主页继续判断
     elif _mess.get("status") == 404:
-        r = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
+        r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
         # 如果是处200/401/407/415的其他状态码，则重新请求请求再确认一次
         if r is c_results:
             # 如果已经确认2次了，则直接保存结果，否则重新请求主页确认，访问次数+1，以第二次访问的结果为准保存
-            r = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
-            r.put(_mess.values())
+            r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
+            r.put(index_mess.values())
         else:
-            r.put(_mess.values())
+            r.put(index_mess.values())
 
-    # 判断状态码是否401,407,415，都是需要认证的
+    # 判断状态码是否401,403,407,415，都是需要认证的
     elif _mess.get("status") in [401, 403, 407, 415]:
+        _mess["title"] = "需要认证"
         b_results.put(_mess.values())
 
     # 判断是否有状态码，有则是不正常网站，否则可能不是网站
@@ -102,18 +103,18 @@ async def getindexmess(dm, mess404, _is404, _https, a_results, b_results, c_resu
         if _is404 and (mess404.get("header_count") == _mess_index.get("header_count")) and (
                 mess404.get("content_length") == _mess_index.get("content_length")):
             return c_results
-        return a_results
+        return a_results, _mess_index
     # 状态码30x，A类
     if str(_mess_index.get("status")).startswith("30"):
-        return a_results
+        return a_results, _mess_index
     # 判断状态码是否401,403,407,415，都是需要认证的
     if mess404.get("status") in [401, 403, 407, 415]:
-        return b_results
+        return b_results, _mess_index
     # 判断是否有状态码，有则在访问主页确认，否则可能不是网站
     if mess404.get("status") is None:
-        return d_results
+        return d_results, _mess_index
     else:
-        return c_results
+        return c_results, _mess_index
 
 
 def getresult():
