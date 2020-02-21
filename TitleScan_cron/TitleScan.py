@@ -179,9 +179,13 @@ async def main(a_results, b_results, c_results, d_results):
     # 命令行获取domain file
     argv = parse_args()
     args_file = argv.f
+    # 默认根据cpu数量
+    _pool = None
+    if argv.p:
+        _pool = int(argv.p)
     # 读取所有域名
     dm_list = open(args_file).readlines()
-    async with Pool() as pool:
+    async with Pool(processes=_pool) as pool:
         result = await pool.map(functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results)), dm_list)
 
 
