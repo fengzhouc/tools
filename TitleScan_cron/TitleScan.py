@@ -207,6 +207,7 @@ if __name__ == "__main__":
         task = asyncio.ensure_future(main(a_results, b_results, c_results, d_results))
         loop = asyncio.get_event_loop()
         loop.run_until_complete(task)
+        STOP_ME = True
         print("\nall done, times:{}".format(time.time() - start))
     except KeyboardInterrupt as e:
         print('\nYou aborted the scan.')
