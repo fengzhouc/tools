@@ -1,12 +1,13 @@
 # encoding=utf-8
-import functools
+import time
 
 import aiohttp
-import requests
+from aiomultiprocess import Pool
 from bs4 import BeautifulSoup
 import string
 import random
 import asyncio
+
 
 async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
     """
@@ -23,22 +24,22 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
 
     try:
         # 获取请求响应
-        resp = await getResp(_url, redirect=redirect)
-
-        result["redirect_url"] = resp.url
-        status = resp.status_code
-        result["status"] = status
-        # 获取title
-        title = getTitle(resp.text)
-        result["title"] = title if title else "without title"
-        # headers
-        _headers = len(resp.headers)
-        result["header_count"] = _headers
-        # 有些可能没有content-length头部
-        # content_length = resp.headers.get("content-length")
-        result["content_length"] = len(resp.content)
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=1000) as session:
+            # print("utl: ", _url)
+            async with session.get(_url, allow_redirects=redirect, timeout=5) as resp:
+                result["redirect_url"] = resp.url._val.geturl()
+                result["status"] = resp.status
+                # 获取title
+                text = await resp.text(errors="ignore")
+                title = getTitle(text)
+                result["title"] = title if title else "without title"
+                # headers
+                _headers = len(resp.raw_headers)
+                result["header_count"] = _headers
+                # 有些可能没有content-length头部
+                result["content_length"] = len(text)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
-    except OSError as e:
+    except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError):
         # 连接失败的时候，信息设置为None
         result["redirect_url"] = None
         result["status"] = None
@@ -48,43 +49,6 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
 
     # print(result)
     return result
-
-async def getResp(url, redirect=False):
-    """
-    获取响应，不过对状态码判断是否重定向，若重定向则递归获取最后的请求响应
-    :param url: 请求的url
-    :param redirect: 是否跟进重定向
-    :return: 请求响应
-    """
-    await asyncio.sleep(0)
-    # 默认是遇到重定向会跟进, allow_redirects控制是否跟进，这里不跟进主要是因为，如果协议不对的话，跟进后就进入的主页
-    resp = requests.get(url, allow_redirects=redirect)
-    return resp
-
-async def getResp1(url, redirect=False):
-    """
-    获取响应，不过对状态码判断是否重定向，若重定向则递归获取最后的请求响应
-    :param url: 请求的url
-    :param redirect: 是否跟进重定向
-    :return: 请求响应
-    """
-    # requests是同步的，不支持协程，解决办法就是使用run_in_executor，
-    # 参考：https://stackoverflow.com/questions/22190403/how-could-i-use-requests-in-asyncio
-    # functools.partial传入*args，**kwargs参数
-    resp = await asyncio.get_event_loop().run_in_executor(None,
-                                                          functools.partial(requests.get, allow_redirects=redirect),
-                                                          url)
-    return resp
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.get(url, allow_redirects=redirect, timeout=5) as resp:
-    #         if str(resp.status).startswith("3"):
-    #             location = resp.headers.get("Location")
-    #             # 默认是发起http请求，如果使用的是https，出现302重定向是到主页的，对于随机url就丢失了，这里做下处理
-    #             if not url.endswith("/") and str(location).endswith("/"):
-    #                 location += url.split("/").pop()
-    #             # print(location)
-    #             resp = getResp(location)
-    #         return resp
 
 
 def getTitle(resp):
@@ -124,7 +88,17 @@ def getUrl(domain, index=False, https=False):
     # print(_url)
     return _url
 
+async def aiomul():
+    # dm_list = open("../vipshop.com_sub.txt").readlines()
+    dm_list = ["112.65.142.187:443",]
+    async with Pool() as pool:
+        result = await pool.map(getStatusAndTitle, dm_list)
+    # for i in result:
+    #     print(i)
 
 if __name__ == "__main__":
-    getStatusAndTitle("vip.com:443", redirect=False)
-    getUrl("sdfasd", https=True)
+    start = time.time()
+    task = asyncio.ensure_future(aiomul())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(task)
+    print("all done, {}".format(time.time() - start))

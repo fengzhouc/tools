@@ -1,18 +1,20 @@
 # encoding=utf-8
 import asyncio
+import functools
+import multiprocessing
 import socket
 import threading
 import time
-import queue
 import xlwt
+from aiomultiprocess import Pool
 from lib.cmdline import parse_args
-from lib.core import getUrl, getStatusAndTitle
+from lib.core import getStatusAndTitle
 
 # 设置超时时间，防止请求时间过长导致程序长时间停止
 socket.setdefaulttimeout(5)
 
 
-async def scan_process(dm, a_results, b_results, c_results, d_results):
+async def scan_process(dm, result_queue=None):
     """
     主逻辑
     :param dm: 域名
@@ -22,6 +24,7 @@ async def scan_process(dm, a_results, b_results, c_results, d_results):
     :param d_results: 不是网站
     :return:
     """
+    a_results, b_results, c_results, d_results = result_queue
     # print("scan_process start[{}]: {}".format(os.getpid(), dm))
     # 是否https
     _https = False
@@ -172,73 +175,38 @@ def writerdata(worksheet, message, row):
         worksheet.write(row, column, m)
     return row
 
-# 事件循环的线程
-def thread_running_loop(lp):
-    # 设置当前线程的事件循环
-    asyncio.set_event_loop(lp)
-    try:
-        lp.run_forever()
-    except Exception as e:
-        print("\tthread is done: ", e)
-    finally:
-        lp.close()
-
-
-async def stop_it():
-    # 取消所有未完成的任务
-    t = [task.cancel() for task in asyncio.Task.all_tasks() if not task.done()]
-    lp = asyncio.get_running_loop()
-    lp.stop()
-
-if __name__ == "__main__":
+async def main(a_results, b_results, c_results, d_results):
     # 命令行获取domain file
     argv = parse_args()
     args_file = argv.f
-    _pool = 16
-    if argv.p:
-        _pool = int(argv.p)
-    # args_file = "1.txt"
-    # _pool = 1
+    # 读取所有域名
+    dm_list = open(args_file).readlines()
+    async with Pool() as pool:
+        result = await pool.map(functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results)), dm_list)
 
-    # 使用线程安全的队列，有两个线程：主线程跟写报告的
-    a_results = queue.Queue()
-    b_results = queue.Queue()
-    c_results = queue.Queue()
-    d_results = queue.Queue()
+
+
+if __name__ == "__main__":
 
     STOP_ME = False
-    # 新建事件循环对象
-    loop = asyncio.new_event_loop()
-
     try:
+        a_results = multiprocessing.Manager().Queue()
+        b_results = multiprocessing.Manager().Queue()
+        c_results = multiprocessing.Manager().Queue()
+        d_results = multiprocessing.Manager().Queue()
+
         # 处理队列中结果的线程
         threading.Thread(target=getresult).start()
-        # 启动事件循环的线程
-        threading.Thread(target=thread_running_loop, args=(loop,)).start()
-        # 动态添加任务
-        with open(args_file) as f:
-            for dm in f:
-                asyncio.run_coroutine_threadsafe(scan_process(dm, a_results, b_results, c_results, d_results), loop)
-        # 阻塞主线程，待所有任务都执行完成
-        while True:
-            num_active_tasks = len([task for task in asyncio.Task.all_tasks(loop) if not task.done()])
-            if num_active_tasks == 0:
-                break
-        # 关闭事件循环
-        asyncio.run_coroutine_threadsafe(stop_it(), loop)
-        # 所有任务执行完成后，为了保证报告线程能处理完队列中的数据
-        time.sleep(5)
-        STOP_ME = True
-        print("\nAll done.")
+
+        start = time.time()
+        task = asyncio.ensure_future(main(a_results, b_results, c_results, d_results))
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(task)
+        print("\nall done, times:{}".format(time.time() - start))
     except KeyboardInterrupt as e:
-        STOP_ME = True
         print('\nYou aborted the scan.')
         exit(1)
     except Exception as e:
-        STOP_ME = True
         print('\n[__main__.exception] %s %s' % (type(e), str(e)))
-        exit(1)
     finally:
         STOP_ME = True
-        # 关闭事件循环
-        asyncio.run_coroutine_threadsafe(stop_it(), loop)
