@@ -14,7 +14,7 @@ def parse_args():
 
     # parser.add_argument("-h", help="help")
 
-    parser.add_argument("-f", help="Load new line delimited targets from TargetFile")
+    parser.add_argument("-f", help="Load new line delimited targets from domainFile")
 
     parser.add_argument("-p", help="multiprocessing pool size, default:os.cpu_count()")
 
