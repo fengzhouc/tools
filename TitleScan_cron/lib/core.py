@@ -27,7 +27,8 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=1000) as session:
             # print("utl: ", _url)
             async with session.get(_url, allow_redirects=redirect, timeout=5) as resp:
-                result["redirect_url"] = resp.url._val.geturl()
+                result["req_url"] = resp.url._val.geturl()
+                result["Location"] = resp.headers.get("Location")
                 result["status"] = resp.status
                 # 获取title
                 text = await resp.text(errors="ignore")
@@ -41,11 +42,14 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError):
         # 连接失败的时候，信息设置为None
-        result["redirect_url"] = None
+        result["req_url"] = None
+        result["Location"] = None
         result["status"] = None
         result["title"] = "without title"
         result["header_count"] = None
         result["content_length"] = None
+    finally:
+        result["protocol"] = None
 
     # print(result)
     return result
