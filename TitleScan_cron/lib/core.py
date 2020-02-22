@@ -78,8 +78,6 @@ def getUrl(domain, index=False, https=False):
     :return: random url
     """
     _domain = domain.strip()
-    if (len(_domain.split(":")) > 1) and _domain.split(":").pop() in ["443", "8443"]:
-        https = True
     # 主页url
     if not https:
         _url = "http://{}/".format(_domain)
