@@ -34,6 +34,7 @@ async def scan_process(dm, result_queue=None):
     # http状态码400 或者请求失败时尝试https
     if http_mess.get("status") == 400 or http_mess.get("status") is None:
         https_mess = await getStatusAndTitle(dm, https=True)
+        https_mess["protocol"] = "https"
         target_dict["https"] = https_mess
     elif str(http_mess.get("status")).startswith("30"):
         https_mess = await getStatusAndTitle(dm, https=True)
@@ -68,7 +69,7 @@ async def scan_process(dm, result_queue=None):
 
     # 循环扫描target_dict里的目标，这样就包含了http、https
     for pro in target_dict:
-        _https = True if pro == "https" else False
+        _https = True if "https" in pro.split("/") else False
         _mess = target_dict[pro]
 
         if _mess.get("status") == 400:
