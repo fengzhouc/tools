@@ -22,11 +22,15 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
     if not _url:
         raise ValueError("url is none.")
 
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/59.0.3071.104 Safari/537.36',
+    }
     try:
         # 获取请求响应
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=1000) as session:
             # print("utl: ", _url)
-            async with session.get(_url, allow_redirects=redirect, timeout=5) as resp:
+            async with session.get(_url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
                 result["req_url"] = resp.url._val.geturl()
                 result["Location"] = resp.headers.get("Location")
                 result["status"] = resp.status
