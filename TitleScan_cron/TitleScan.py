@@ -18,53 +18,41 @@ async def scan_process(dm, result_queue=None):
     """
     主逻辑
     :param dm: 域名
-    :param a_results: 正常网站
-    :param b_results: 访问受限网站
-    :param c_results: 不正常网站
-    :param d_results: 不是网站
+    :param result_queue: 每类结果的队列
     :return:
     """
     # 不同分类的结果队列
-    a_results, b_results, c_results, d_results = result_queue
+    a_results, b_results, c_results, d_results, e_results = result_queue
     # 获取不存在资源的响应信息，不跟进重定向，getStatusAndTitle函数已处理
     http_mess = await getStatusAndTitle(dm)
 
-    # 扫描列表，主要是http。https两种协议，下面先判断两种协议下的站点是否指向同一个
+    # 扫描列表，主要是http。https两种协议
     target_dict = {}
     # http状态码400 或者请求失败时尝试https
     if http_mess.get("status") == 400 or http_mess.get("status") is None:
         https_mess = await getStatusAndTitle(dm, https=True)
-        https_mess["protocol"] = "https"
         target_dict["https"] = https_mess
     elif str(http_mess.get("status")).startswith("30"):
         https_mess = await getStatusAndTitle(dm, https=True)
         # 请求失败时,则只支持http
         if https_mess.get("status") is None:
-            http_mess["protocol"] = "http"
             target_dict["http"] = http_mess
         # https状态码20x，而且重定向是同一个域，则认为是同样的网站，支持http/https
         elif str(https_mess.get("status")).startswith("20") and http_mess["original_domain"] == http_mess["Location"]:
-            http_mess["protocol"] = "http/https"
             target_dict["http"] = http_mess
         # https状态码30x，如果跳转同一个页面，则认为是同样的网站，支持http/https
         elif str(https_mess.get("status")).startswith("30") and https_mess["Location"] == http_mess["Location"]:
-            http_mess["protocol"] = "http/https"
             target_dict["http"] = http_mess
         else:
-            http_mess["protocol"] = "http"
             target_dict["http"] = http_mess
-            https_mess["protocol"] = "https"
             target_dict["https"] = https_mess
     else:
         https_mess = await getStatusAndTitle(dm, https=True)
         # 如果状态码即title都相同，则认为是同一个站点，支持http/https
         if http_mess.get("status") == https_mess.get("status") and http_mess.get("title") == https_mess.get("title"):
-            http_mess["protocol"] = "http/https"
             target_dict["http"] = http_mess
         else:
-            http_mess["protocol"] = "http"
             target_dict["http"] = http_mess
-            https_mess["protocol"] = "https"
             target_dict["https"] = https_mess
 
     # 循环扫描target_dict里的目标，这样就包含了http、https
@@ -72,11 +60,13 @@ async def scan_process(dm, result_queue=None):
         _https = True if "https" in pro.split("/") else False
         _mess = target_dict[pro]
 
-        if _mess.get("status") == 400:
+        if _mess.get("status") == 400 and _https:
             c_results.put(_mess.values())
-            return
+        # 因为target_dict已经包含了https的，所以遇到http状态码400的直接进行下一次迭代，也就是抛弃这次http的结果
+        elif _mess.get("status") == 400 and not _https:
+            continue
 
-        # 状态码200，进行分支访问主页继续判断
+        # 不存在目录请求状态码200，进行分支访问主页继续判断
         _is404 = False
         if _mess.get("status") == 200:
             # 这里是状态码200的错误页面的关键字，后续需要更新以保证正确性
@@ -90,71 +80,79 @@ async def scan_process(dm, result_queue=None):
                 a_results.put(_mess.values())
             # 如果不包含，则需要进一步确认主页
             else:
-                r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results,
-                                                   d_results)
-                # 如果是处200/401/407/415的其他状态码，则重新请求请求再确认一次
-                if r is c_results:
-                    # 如果已经确认2次了，则直接保存结果，否则重新请求主页确认，访问次数+1，以第二次访问的结果为准保存
-                    r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results,
-                                                       d_results)
-                    r.put(_mess.values())
+                # _checkcentent=True, 不存在目录跟主页状态码都在200的情况下进行相似度比较
+                r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results,
+                                                   d_results, e_results, _checkcentent=True)
+                # 主页如果属于D类，即状态码501/502/503/504/请求失败，则重新请求请求再确认一次
+                if r is d_results:
+                    # 以第二次访问的结果为准保存
+                    r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results,
+                                                       d_results, e_results)
+                    r.put(index_mess.values())
+                # 其他类的结果
                 else:
-                    r.put(_mess.values())
-        # 状态码30x，A类
+                    r.put(index_mess.values())
+        # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
             a_results.put(_mess.values())
-        # 状态码404，进行分支访问主页继续判断
+        # 不存在目录请求状态码404，进行分支访问主页继续判断
         elif _mess.get("status") == 404:
-            r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results, d_results)
-            # 如果是处200/401/407/415的其他状态码，则重新请求请求再确认一次
-            if r is c_results:
-                # 如果已经确认2次了，则直接保存结果，否则重新请求主页确认，访问次数+1，以第二次访问的结果为准保存
-                r, index_mess = await getindexmess(dm, _mess, _is404, _https, a_results, b_results, c_results,
-                                                   d_results)
-                r.put(_mess.values())
+            r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results, d_results, e_results)
+            # 如果是D类，则重新请求再确认一次
+            if r is d_results:
+                # 以第二次访问的结果为准保存
+                r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results,
+                                                   d_results, e_results)
+                r.put(index_mess.values())
+            # 其他类的结果
             else:
-                r.put(_mess.values())
+                r.put(index_mess.values())
 
-        # 判断状态码是否401,403,407,415，都是需要认证的
-        elif _mess.get("status") in [401, 403, 407, 415]:
-            _mess["title"] = "需要认证"
+        # 不存在目录请求状态码是否401,407,415，都是需要认证的,大概率正常网站，因为做了认证
+        elif _mess.get("status") in [401, 407, 415]:
             b_results.put(_mess.values())
-
-        # 判断是否有状态码，有则是不正常网站，否则可能不是网站
-        elif _mess.get("status") is None:
-            d_results.put(_mess.values())
-        else:
+        # 不存在目录请求状态码403，500，小概率正常网站
+        elif _mess.get("status") in [403, 500]:
             c_results.put(_mess.values())
+        # 不存在目录请求状态码是否501，502，503，504及没有，不存在目录返回这些状态码，说明不是正常网站
+        elif (_mess.get("status") is None) or (_mess.get("status") in [501, 502, 503, 504]):
+            d_results.put(_mess.values())
+        # 预料之外的情况，需要关注，以完善工具
+        else:
+            e_results.put(_mess.values())
 
 
-async def getindexmess(dm, mess404, _is404, _https, a_results, b_results, c_results, d_results):
+async def getindexmess(dm, mess404, _https, a_results, b_results, c_results, d_results, e_results, _checkcentent=False):
     """
     主页请求判断分支函数封装
     :param dm: 域名，生成url
     :param mess404:  前面不存在资源的访问结果
-    :param _is404:  前面不存在资源的访问结果是否是404页面
+    :param _checkcentent:  不存在目录跟主页状态码都在200的情况下进行相似度比较
     :param _https:  协议是否https
-    :return:  站点分类，A,B,C,D
+    :return:  站点分类，A,B,C,D,E
     """
     _mess_index = await getStatusAndTitle(dm, index=True, https=_https)
     # 如果状态码200，跟不存在资源请求的响应作比较，看是否相同，相同则C类，否则A类
     if _mess_index.get("status") == 200:
-        # 这里_is404的作用主要是做兼容的，不存在资源访问状态码404,200的区分兼容，只有200且不包含404关键字的时候才需要比对不存在资源响应跟主页响应是否相同
-        if _is404 and (mess404.get("header_count") == _mess_index.get("header_count")) and (
-                mess404.get("content_length") == _mess_index.get("content_length")):
+        # 不存在目录跟主页状态码都在200的情况下进行相似度比较
+        if _checkcentent and (mess404.get("header_count") == _mess_index.get("header_count")) and (
+                mess404.get("title") == _mess_index.get("title")):
             return c_results, _mess_index
         return a_results, _mess_index
     # 状态码30x，A类
     if str(_mess_index.get("status")).startswith("30"):
         return a_results, _mess_index
-    # 判断状态码是否401,403,407,415，都是需要认证的
-    if mess404.get("status") in [401, 403, 407, 415]:
+    # 判断状态码是否401,403,404,407,415，都是需要认证的
+    if mess404.get("status") in [401, 403, 404, 407, 415]:
         return b_results, _mess_index
+    # 状态码500，说明主页异常，可能没有设置主页，
+    if mess404.get("status") == 500:
+        return c_results, _mess_index
     # 判断是否有状态码，有则在访问主页确认，否则可能不是网站
-    if mess404.get("status") is None:
+    if (mess404.get("status") is None) or (mess404.get("status") in [501, 502, 503, 504]):
         return d_results, _mess_index
     else:
-        return c_results, _mess_index
+        return e_results, _mess_index
 
 
 def getresult():
@@ -163,35 +161,40 @@ def getresult():
     :return:
     """
     wb = xlwt.Workbook()
-    column_keys = ['original_domain', 'req_url', "Location", 'status', 'title', 'header_count', 'content_length', "protocol"]
-    a = wb.add_sheet("A类 正常网站")
+    column_keys = ['original_domain', 'index_url', "Location", 'status', 'title', 'header_count']
+    a = wb.add_sheet("A类 正常网站（重点关注）")
     for column, m in enumerate(column_keys):
         a.write(0, column, m)
-    b = wb.add_sheet("B类 访问受限网站")
+    b = wb.add_sheet("B类 大概率正常网站（重点关注）")
     for column, m in enumerate(column_keys):
         b.write(0, column, m)
-    c = wb.add_sheet("C类 非正常网站")
+    c = wb.add_sheet("C类 小概率正常网站")
     for column, m in enumerate(column_keys):
         c.write(0, column, m)
-    d = wb.add_sheet("D类 不是网站")
+    d = wb.add_sheet("D类 非正常网站")
     for column, m in enumerate(column_keys):
         d.write(0, column, m)
+    e = wb.add_sheet("E类 意外情况（需要关注）")
+    for column, m in enumerate(column_keys):
+        e.write(0, column, m)
     # 报告文件名以时间
-    report_filename = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+    report_filename = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
     global STOP_ME
     global a_results
     global b_results
     global c_results
     global d_results
+    global e_results
     # 报告行数记录
     aline = 0
     bline = 0
     cline = 0
     dline = 0
+    eline = 0
     while not STOP_ME:
-        print("[#Report_Thread] A:{} B:{} C:{} D:{} total:{} ".format(aline, bline, cline, dline,
-                                                                      aline + bline + cline + dline), end="\r")
+        print("[#Report_Thread] A:{} B:{} C:{} D:{} E:{} total:{} ".format(aline, bline, cline, dline, eline,
+                                                                      aline + bline + cline + dline + eline), end="\r")
         if a_results.qsize() > 0:
             aline = writerdata(a, a_results.get(), aline)
         if b_results.qsize() > 0:
@@ -200,6 +203,8 @@ def getresult():
             cline = writerdata(c, c_results.get(), cline)
         if d_results.qsize() > 0:
             dline = writerdata(d, d_results.get(), dline)
+        if e_results.qsize() > 0:
+            eline = writerdata(e, e_results.get(), eline)
     wb.save("./report/{}.xls".format(report_filename))
     print("report save success, file name: {}.xls".format(report_filename))
 
@@ -219,7 +224,7 @@ def writerdata(worksheet, message, row):
     return row
 
 
-async def main(a_results, b_results, c_results, d_results):
+async def main(a_results, b_results, c_results, d_results, e_results):
     # 命令行获取domain file
     argv = parse_args()
     args_file = argv.f
@@ -231,7 +236,8 @@ async def main(a_results, b_results, c_results, d_results):
     dm_list = open(args_file).readlines()
     async with Pool(processes=_pool) as pool:
         result = await pool.map(
-            functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results)), dm_list)
+            functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results, e_results)),
+            dm_list)
 
 
 if __name__ == "__main__":
@@ -242,12 +248,13 @@ if __name__ == "__main__":
         b_results = multiprocessing.Manager().Queue()
         c_results = multiprocessing.Manager().Queue()
         d_results = multiprocessing.Manager().Queue()
+        e_results = multiprocessing.Manager().Queue()
 
         # 处理队列中结果的线程
         threading.Thread(target=getresult).start()
 
         start = time.time()
-        task = asyncio.ensure_future(main(a_results, b_results, c_results, d_results))
+        task = asyncio.ensure_future(main(a_results, b_results, c_results, d_results, e_results))
         loop = asyncio.get_event_loop()
         loop.run_until_complete(task)
 

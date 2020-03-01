@@ -12,8 +12,9 @@ import asyncio
 async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
     """
     发送请求，获取状态码及title
+    :param https: 是否使用https协议发送请求
     :param redirect: 是否跟进重定向
-    :param url: 请求的url
+    :param domain: 域名
     :return: dict [original_domain，rediect_url, status，title, header_count, content-length]
     """
     _url = getUrl(domain, index=index, https=https)
@@ -31,29 +32,26 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=1000) as session:
             # print("utl: ", _url)
             async with session.get(_url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
-                result["req_url"] = resp.url._val.geturl()
+                result["index_url"] = "{}://{}/".format("https" if https else "http", domain.strip())
                 result["Location"] = resp.headers.get("Location")
                 result["status"] = resp.status
                 # 获取title
                 text = await resp.text(errors="ignore")
                 title = getTitle(text)
-                result["title"] = title if title else "without title"
+                result["title"] = title if title else ""
                 # headers
                 _headers = len(resp.raw_headers)
                 result["header_count"] = _headers
-                # 有些可能没有content-length头部
-                result["content_length"] = len(text)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError):
         # 连接失败的时候，信息设置为None
         result["req_url"] = None
         result["Location"] = None
         result["status"] = None
-        result["title"] = "without title"
+        result["title"] = ""
         result["header_count"] = None
-        result["content_length"] = None
     finally:
-        result["protocol"] = None
+        pass
 
     # print(result)
     return result
@@ -77,7 +75,7 @@ def getTitle(resp):
 def getUrl(domain, index=False, https=False):
     """
     根据域名生成随机的url，指向不存在的资源;；返回随机url
-    :param index: boolean 默认获取主页url，即/
+    :param index: boolean 默认获取不存在url
     :param domain: 域名
     :return: random url
     """
