@@ -13,6 +13,11 @@ from lib.core import getStatusAndTitle
 # 设置超时时间，防止请求时间过长导致程序长时间停止
 socket.setdefaulttimeout(5)
 
+# 这里是状态码200的错误页面的关键字，后续需要更新以保证正确性
+_key404 = ["404", "找不到", "Not Found"]
+# 标题关键字，识别特殊错误，这个以后需要持续完善的，太多定制的错误我们需要每次持续的更新
+keyworkd = ["访问拦截",
+            "网站访问报错", ]
 
 async def scan_process(dm, result_queue=None):
     """
@@ -60,17 +65,14 @@ async def scan_process(dm, result_queue=None):
         _https = True if "https" in pro.split("/") else False
         _mess = target_dict[pro]
 
+        # 这里不会有http 400的情况，上面做了过滤，如果http 400 ，则target_dict中只有https
         if _mess.get("status") == 400 and _https:
             c_results.put(_mess.values())
-        # 因为target_dict已经包含了https的，所以遇到http状态码400的直接进行下一次迭代，也就是抛弃这次http的结果
-        elif _mess.get("status") == 400 and not _https:
             continue
 
         # 不存在目录请求状态码200，进行分支访问主页继续判断
         _is404 = False
         if _mess.get("status") == 200:
-            # 这里是状态码200的错误页面的关键字，后续需要更新以保证正确性
-            _key404 = ["404", "找不到", "not found"]
             for i in _key404:
                 _is404 = True if i in _mess.get("title") else False
                 if _is404:
@@ -131,25 +133,33 @@ async def getindexmess(dm, mess404, _https, a_results, b_results, c_results, d_r
     :param _https:  协议是否https
     :return:  站点分类，A,B,C,D,E
     """
+    # 请求主页信息
     _mess_index = await getStatusAndTitle(dm, index=True, https=_https)
-    # 如果状态码200，跟不存在资源请求的响应作比较，看是否相同，相同则C类，否则A类
+    # 特殊错误识别，相似度比较
+    if _mess_index.get("title") in keyworkd or \
+            (_mess_index.get("status") == mess404.get("status") and
+             mess404.get("title") == _mess_index.get("title") and
+             _mess_index.get("contenthash") == mess404.get("contenthash")):
+        return c_results, _mess_index
+
+    # 主页状态码200，跟不存在资源请求的响应作比较，看是否相同，相同则C类，否则A类
     if _mess_index.get("status") == 200:
         # 不存在目录跟主页状态码都在200的情况下进行相似度比较
         if _checkcentent and (mess404.get("header_count") == _mess_index.get("header_count")) and (
                 mess404.get("title") == _mess_index.get("title")):
             return c_results, _mess_index
         return a_results, _mess_index
-    # 状态码30x，A类
+    # 主页状态码30x，A类
     if str(_mess_index.get("status")).startswith("30"):
         return a_results, _mess_index
-    # 判断状态码是否401,403,404,407,415，都是需要认证的
-    if mess404.get("status") in [401, 403, 404, 407, 415]:
+    # 主页判断状态码是否401,403,404,407,415，都是需要认证的
+    if _mess_index.get("status") in [401, 403, 404, 407, 415]:
         return b_results, _mess_index
-    # 状态码500，说明主页异常，可能没有设置主页，
-    if mess404.get("status") == 500:
+    # 主页状态码400,500，说明主页异常，可能没有设置主页，
+    if _mess_index.get("status") in [400, 500]:
         return c_results, _mess_index
-    # 判断是否有状态码，有则在访问主页确认，否则可能不是网站
-    if (mess404.get("status") is None) or (mess404.get("status") in [501, 502, 503, 504]):
+    # 主页是否有状态码，有则在访问主页确认，否则可能不是网站
+    if (_mess_index.get("status") is None) or (_mess_index.get("status") in [501, 502, 503, 504]):
         return d_results, _mess_index
     else:
         return e_results, _mess_index
@@ -161,7 +171,7 @@ def getresult():
     :return:
     """
     wb = xlwt.Workbook()
-    column_keys = ['original_domain', 'index_url', "Location", 'status', 'title', 'header_count']
+    column_keys = ['original_domain', 'index_url', "Location", 'status', 'title', 'contenthash']
     a = wb.add_sheet("A类 正常网站（重点关注）")
     for column, m in enumerate(column_keys):
         a.write(0, column, m)
@@ -232,8 +242,9 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     _pool = None
     if argv.p:
         _pool = int(argv.p)
-    # 读取所有域名
-    dm_list = open(args_file).readlines()
+    # 读取所有域名，并去重
+    dm_list = list(set(open(args_file).readlines()))
+    # dm_list = open(args_file).readlines()
     async with Pool(processes=_pool) as pool:
         result = await pool.map(
             functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results, e_results)),

@@ -39,9 +39,8 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
                 text = await resp.text(errors="ignore")
                 title = getTitle(text)
                 result["title"] = title if title else ""
-                # headers
-                _headers = len(resp.raw_headers)
-                result["header_count"] = _headers
+                content = await resp.text()
+                result["contenthash"] = hash(content)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError):
         # 连接失败的时候，信息设置为None
@@ -49,7 +48,10 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
         result["Location"] = None
         result["status"] = None
         result["title"] = ""
-        result["header_count"] = None
+        result["contenthash"] = None
+    except UnicodeDecodeError as e:
+        # 编码不一致的情况，或者响应不是文本，而是二进制流
+        result["contenthash"] = None
     finally:
         pass
 
