@@ -96,7 +96,7 @@ async def scan_process(dm, result_queue=None):
                     r.put(index_mess.values())
         # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
-            _mess = await getStatusAndTitle(dm, redirect=True)
+            _mess = await getStatusAndTitle(dm, index=True, redirect=True)
             a_results.put(_mess.values())
         # 不存在目录请求状态码404，进行分支访问主页继续判断
         elif _mess.get("status") == 404:
