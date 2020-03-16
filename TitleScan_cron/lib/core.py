@@ -1,4 +1,5 @@
 # encoding=utf-8
+import re
 import time
 
 import aiohttp
@@ -32,7 +33,9 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=1000) as session:
             # print("utl: ", _url)
             async with session.get(_url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
-                result["index_url"] = "{}://{}/".format("https" if https else "http", domain.strip())
+                # 正则匹配获取当前请求url的主页url
+                pattern = re.compile(r"(?:http)[s]{0,1}://[a-zA-Z0-9\.:]*/")
+                result["index_url"] = pattern.findall(str(resp.url._val.geturl()))[0]
                 result["Location"] = resp.headers.get("Location")
                 result["status"] = resp.status
                 # 获取title
