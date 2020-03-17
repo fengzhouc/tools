@@ -89,15 +89,16 @@ async def scan_process(dm, result_queue=None):
                 if r is d_results:
                     # 以第二次访问的结果为准保存
                     r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results,
-                                                       d_results, e_results)
+                                                       d_results, e_results, _checkcentent=True)
                     r.put(index_mess.values())
                 # 其他类的结果
                 else:
                     r.put(index_mess.values())
         # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
-            _mess = await getStatusAndTitle(dm, index=True, redirect=True)
-            a_results.put(_mess.values())
+            i_mess = await getStatusAndTitle(dm, index=True, redirect=True, https=_https)
+            print("line101 ", _mess, dm)
+            a_results.put(i_mess.values())
         # 不存在目录请求状态码404，进行分支访问主页继续判断
         elif _mess.get("status") == 404:
             r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results, d_results, e_results)
