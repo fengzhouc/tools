@@ -9,7 +9,7 @@ import asyncio
 from bs4 import BeautifulSoup
 
 
-async def get(url, redirect=False):
+async def get(url, session, redirect=False):
     """
     发送请求，获取状态码
     :param redirect: 是否跟进重定向
@@ -26,12 +26,12 @@ async def get(url, redirect=False):
     }
     try:
         # 获取请求响应
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
-                                         conn_timeout=1000) as session:
-            async with session.get(url, allow_redirects=redirect, headers=headers) as resp:
-                resp_text = await resp.text()
-                status = resp.status
-                return resp_text, status, None
+        # async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
+                                         # conn_timeout=1000) as session:
+        async with session.get(url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
+            resp_text = await resp.text()
+            status = resp.status
+            return resp_text, status, None
 
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
