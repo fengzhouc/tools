@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import string
 import random
 import asyncio
+from urllib import parse
 
 
 async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
@@ -34,8 +35,8 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
             # print("utl: ", _url)
             async with session.get(_url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
                 # 正则匹配获取当前请求url的主页url
-                pattern = re.compile(r"(?:http)[s]{0,1}://[a-zA-Z0-9\.:]*")
-                result["index_url"] = pattern.findall(str(resp.url._val.geturl()))[0]
+                url_info = parse.urlparse(resp.url._val.geturl())
+                result["index_url"] = "://".join(url_info[0:2])
                 result["Location"] = resp.headers.get("Location")
                 result["status"] = resp.status
                 # 获取title
