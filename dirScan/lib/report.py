@@ -8,7 +8,9 @@ from urllib import parse
 # 写报告
 def report(url, r_queue, report_dir):
     # 根据时间创建目录
-    os.mkdir("{}/report/{}".format(os.getcwd(), report_dir))
+    path = "{}/report/{}".format(os.getcwd(), report_dir)
+    if not os.path.exists(path):
+        os.mkdir(path)
     r_temp = []
     c_result = []
     url_info = parse.urlparse(url)
