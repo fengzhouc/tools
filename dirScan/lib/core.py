@@ -1,5 +1,7 @@
 # encoding=utf-8
 import functools
+import random
+import string
 import time
 
 import aiohttp
@@ -35,10 +37,14 @@ async def get(url, session, redirect=False):
 
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
-        print("[Except] {} {}".format(url, str(e)))
-
+        print("[Except] 请求失败 {} error_message：{}".format(url, str(e)))
         return "", "", str(e)
 
+
+# 获取随机url，集不存在的目录url
+def get_r_url(url):
+    flag = string.ascii_letters + string.digits
+    return url + "".join(random.sample(flag, random.randint(3, 10)))
 
 
 async def aiomul():
