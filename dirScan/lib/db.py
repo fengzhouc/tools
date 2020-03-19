@@ -42,7 +42,7 @@ class Dbcontroller:
         if self.select(d_str) is None:
             self.insert(d_str, "path")
             return
-        sql = "UPDATE COMPANY set COUNT = '{}' where DICT='{}'".format(self.select(d_str) + 1, d_str)
+        sql = "UPDATE DICTS set COUNT = '{}' where DICT='{}'".format(self.select(d_str) + 1, d_str)
         self.cursor.execute(sql)
         self.db.commit()
         print("UPDATE COUNT successfully")

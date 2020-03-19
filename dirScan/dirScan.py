@@ -86,10 +86,11 @@ async def scan(queue, r_queue, session):
 async def schedule(url, queue):
     total = queue.qsize()
     while not queue.empty():
-        await asyncio.sleep(0)
+        await asyncio.sleep(1)
         print("[schedule] bruting {} done:{} | {:.0%}".format(url,
                                                               total-queue.qsize(),
                                                               (total-queue.qsize())/total), end="\r")
+    print()
 
 # 主函数，注入爆破目标url，根据字典生成请求，并使用多进程协程进行验证
 async def main(url, report_dir):
@@ -106,7 +107,6 @@ async def main(url, report_dir):
         q.put_nowait(target)
     # 协程任务列表
     tasks = []
-    # await schedule(url, q)
     # 多协程并发进行验证
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
                                      conn_timeout=1000) as session:
