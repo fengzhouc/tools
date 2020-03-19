@@ -2,6 +2,7 @@
 import asyncio
 import functools
 import time
+from urllib import parse
 
 import aiohttp
 import aiomultiprocess
@@ -11,7 +12,10 @@ from lib.core import get, get_r_url
 from lib.cmdline import parse_args
 from lib.config import path_dict, filename_dict, processes, crons, childconcurrency
 from lib.report import report
+from lib.db import Dbcontroller
 
+
+db = Dbcontroller()
 
 # 这里是状态码200的错误页面的关键字，后续需要更新以保证正确性
 _key404 = ["404", "找不到", "Not Found", "很抱歉"]
@@ -23,6 +27,7 @@ _key_lost_param = ["required", "parameter"]
 async def scan(queue, r_queue, session):
     while not queue.empty():
         url = queue.get_nowait()
+        url_info = parse.urlparse(url)
         await asyncio.sleep(0.5)  # 防止访问过快，导致大量socket连接失败
         is404 = False
         islost_param = False
@@ -45,6 +50,8 @@ async def scan(queue, r_queue, session):
             else:
                 print("[命中] {} {}".format(status, url))
                 r_queue.put_nowait(["a", status, url, error])
+                # 更新数据库字典信息
+                db.update(url_info.path[1:])
         elif status in [400, 403]:
             # 状态码200的错误页面相似度比较
             for key in _key_lost_param:
@@ -54,6 +61,8 @@ async def scan(queue, r_queue, session):
             if islost_param:
                 print("[命中] {} {}".format(status, url))
                 r_queue.put_nowait(["a", status, url, error])
+                # 更新数据库字典信息
+                db.update(url_info.path[1:])
             else:
                 random_url = get_r_url(url)
                 resp_404, status_404, error_404 = await get(random_url, session)
@@ -64,13 +73,23 @@ async def scan(queue, r_queue, session):
                 else:
                     print("[可能] {} {}".format(status, url))
                     r_queue.put_nowait(["b", status, url, error])
+                    # 更新数据库字典信息
+                    db.update(url_info.path[1:])
         elif status == 405:
             print("[命中] {} {}".format(status, url))
             r_queue.put_nowait(["a", status, url, error])
+            # 更新数据库字典信息
+            db.update(url_info.path[1:])
         else:
             r_queue.put_nowait(["c", status, url, error])
 
-
+async def schedule(url, queue):
+    total = queue.qsize()
+    while not queue.empty():
+        await asyncio.sleep(0)
+        print("[schedule] bruting {} done:{} | {:.0%}".format(url,
+                                                              total-queue.qsize(),
+                                                              (total-queue.qsize())/total), end="\r")
 
 # 主函数，注入爆破目标url，根据字典生成请求，并使用多进程协程进行验证
 async def main(url, report_dir):
@@ -87,15 +106,18 @@ async def main(url, report_dir):
         q.put_nowait(target)
     # 协程任务列表
     tasks = []
+    # await schedule(url, q)
     # 多协程并发进行验证
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
                                      conn_timeout=1000) as session:
+        # 进度条的协程
+        tasks.append(schedule(url, q))
         for _ in range(crons):
             task = scan(q, r_q, session)
             tasks.append(task)
         start = time.time()
         await asyncio.wait(tasks)
-    print("over scan {}, time:{}s".format(url, time.time() - start))
+    print("over brute {}, time:{}s".format(url, time.time() - start))
     # 写报告
     report(url, r_q, report_dir)
 
@@ -118,7 +140,6 @@ if __name__ == '__main__':
         for sheet in sheet_list:
             table = data.sheets()[sheet]
             urls.extend(table.col_values(1)[1:])
-        # run(urls)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(run(urls))
     except KeyboardInterrupt as e:

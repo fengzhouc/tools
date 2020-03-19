@@ -1,7 +1,6 @@
 # encoding=utf-8
 import csv
 import os
-import time
 from urllib import parse
 
 
@@ -39,6 +38,6 @@ def report(url, r_queue, report_dir):
             w.writerow(result)
 
 
-if __name__ == "report":
-    print("report init")
-    report_dir = time.strftime("%Y%m%d%H%M%S", time.localtime())
+if __name__ == "__main__":
+    url_info = parse.urlparse("http://sdfa//sdfa/sdfas/dfa?dfa")
+    print(url_info.path[1:])
