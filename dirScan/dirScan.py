@@ -86,7 +86,7 @@ async def scan(queue, r_queue, session):
 async def schedule(url, queue):
     total = queue.qsize()
     while not queue.empty():
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
         print("[schedule] bruting {} done:{} | {:.0%}".format(url,
                                                               total-queue.qsize(),
                                                               (total-queue.qsize())/total), end="\r")
