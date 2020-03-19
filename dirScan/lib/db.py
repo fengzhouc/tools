@@ -69,6 +69,9 @@ class Dbcontroller:
         return count
 
     def insert(self, d, d_type):
+        if self.select(d) is not None:
+            print("Data was exists")
+            return
         sql = "INSERT INTO DICTS (TYPE, DICT, COUNT) VALUES ('{}','{}',{});".format(d_type, d, 0)
         self.cursor.execute(sql)
         self.db.commit()
