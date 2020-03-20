@@ -78,7 +78,10 @@ class Dbcontroller:
         print("INSERT data successfully")
 
 
+db = Dbcontroller()
+
+
 if __name__ == '__main__':
-    db = Dbcontroller()
+
     # db.import_dicts("./../dicts/all.txt", "path")
     print(db.select("profs"))

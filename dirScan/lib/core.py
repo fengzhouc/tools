@@ -8,7 +8,7 @@ import aiohttp
 from aiomultiprocess import Pool
 import asyncio
 
-from bs4 import BeautifulSoup
+from lib.config import red, end
 
 
 async def get(url, session, redirect=False):
@@ -28,8 +28,6 @@ async def get(url, session, redirect=False):
     }
     try:
         # 获取请求响应
-        # async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
-                                         # conn_timeout=1000) as session:
         async with session.get(url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
             resp_text = await resp.text()
             status = resp.status
@@ -37,7 +35,7 @@ async def get(url, session, redirect=False):
 
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
-        print("[Except] 请求失败 {} error_message：{}".format(url, str(e)))
+        print("{}[Except] {} ,error_message：{}.{}".format(red, url, str(e), end))
         return "", "", str(e)
 
 
@@ -46,19 +44,3 @@ def get_r_url(url):
     flag = string.ascii_letters + string.digits
     return url + "".join(random.sample(flag, random.randint(3, 10)))
 
-
-async def aiomul():
-    # dm_list = open("../vipshop.com_sub.txt").readlines()
-    dm_list = ["legou55525ht.com", ]
-    async with Pool() as pool:
-        result = await pool.map(functools.partial(get, index=True), dm_list)
-    # for i in result:
-    #     print(i)
-
-
-if __name__ == "__main__":
-    start = time.time()
-    task = asyncio.ensure_future(aiomul())
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(task)
-    print("all done, {}".format(time.time() - start))
