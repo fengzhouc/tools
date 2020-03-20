@@ -9,7 +9,7 @@ def report(url, r_queue, report_dir):
     # 根据时间创建目录
     path = "{}/report/{}".format(os.getcwd(), report_dir)
     if not os.path.exists(path):
-        os.mkdir(path)
+        os.makedirs(path)
     r_temp = []
     c_result = []
     url_info = parse.urlparse(url)
