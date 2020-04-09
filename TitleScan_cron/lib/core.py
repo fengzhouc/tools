@@ -46,7 +46,7 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
                 content = await resp.text()
                 result["contenthash"] = hash(content)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
-    except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
+    except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
         print("[EXCEPT] {} {}".format(_url, str(e)))
         # 连接失败的时候，信息设置为None
         result["index_url"] = _url
