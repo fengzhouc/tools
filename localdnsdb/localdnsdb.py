@@ -64,8 +64,8 @@ class Dbcontroller:
                                                                                                                value)
         self.cursor.execute(sql)
         if self.cursor.rowcount == 0:
-            return 0
-        return 1
+            return 1
+        return 0
 
     def insert(self, timestamp=None, name=None, type=None, value=None):
         sql = "INSERT INTO dnsdicts (timestamp, name, type, value) VALUES ('{}','{}','{}','{}');".format(timestamp,
@@ -75,7 +75,7 @@ class Dbcontroller:
         if self.check(timestamp, name, type, value):
             self.cursor.execute(sql)
             self.db.commit()
-        print("INSERT data successfully")
+            print("INSERT data successfully {} {} {} {}".format(timestamp, name, type, value))
 
 
 db = Dbcontroller()
@@ -86,10 +86,11 @@ def oslistdirer(path, suffix):
     r = os.listdir(path)
     return [os.path.join(path,f) for f in r if f.endswith(suffix)]
 
+
 if __name__ == '__main__':
     # db = Dbcontroller()
     # db.select("a", 'b', 'c', 'c')
-    fies = oslistdirer("E:\\doc\\字典数据\\import", "json")
+    fies = oslistdirer("PATH", "json")
     for file in fies:
         db.import_dicts(file)
     pass
