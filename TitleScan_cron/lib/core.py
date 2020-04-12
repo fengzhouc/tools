@@ -71,12 +71,17 @@ def getTitle(resp):
     :return: title文本
     """
     # print("getTitle: ", resp)
-    soup = BeautifulSoup(resp, "html.parser")
-    _title = soup.find("title")
-    if not _title:
-        return None
-    else:
-        return _title.text
+    key = "<title>(.*)</title>"
+    title = re.findall(key, resp)
+    if title:
+        return title[0]
+    return None
+    # soup = BeautifulSoup(resp, "html.parser")
+    # _title = soup.find("title")
+    # if not _title:
+    #     return None
+    # else:
+    #     return _title.text
 
 
 def getUrl(domain, index=False, https=False):
