@@ -3,6 +3,7 @@ import csv
 
 import xlrd
 from dns import resolver
+from dns.exception import Timeout
 from dns.resolver import NXDOMAIN
 
 from cmdline import parse_args
@@ -14,7 +15,7 @@ def query(domain, type):
         ans = resolver.query(domain, type)
         for i in ans:
             result.append([domain, i.address])
-    except NXDOMAIN as e:
+    except (NXDOMAIN, Timeout) as e:
         report([[domain, str(e)], ], "dna_error-{}".format(type))
     finally:
         report(result, "dnsquery-{}".format(type))
