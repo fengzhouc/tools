@@ -17,7 +17,7 @@ def query(domain, type):
     except NXDOMAIN as e:
         report([[domain, str(e)], ], "dna_error")
     finally:
-        report(result, "dns_a")
+        report(result, "dnsquery")
 
 # 写报告
 def report(data, filename):
@@ -39,13 +39,14 @@ def get_urls():
         for sheet in sheet_list:
             table = data.sheets()[sheet]
             urls.extend(table.col_values(args.c)[1:])
-        return urls
+        return list(set(urls))
     # 读取txt中的url
     if f.endswith("txt"):
         with open(f, encoding="utf-8") as file:
             for url in file:
                 urls.append(url.strip())
-        return urls
+        return list(set(urls))
+
 
 if __name__ == '__main__':
     domains = get_urls()

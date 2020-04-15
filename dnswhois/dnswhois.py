@@ -32,7 +32,7 @@ def parse_resp(domain, resp_str):
     result = [domain, ]
     key1 = '注册商</div><div class="fr WhLeList-right"><div class="block ball"><span>(.*)</span></div></div>'  # 注册商
     key2 = '联系邮箱</div><div class="fr WhLeList-right block ball lh24"><span>([^\d]*)</span>'  # 联系邮箱
-    key3 = '联系电话</div><div class="fr WhLeList-right block ball lh24"><span>([0-9-]*)</span>'  # 联系电话
+    key3 = '联系电话</div><div class="fr WhLeList-right block ball lh24"><span>([0-9-\*]*)</span>'  # 联系电话
     key4 = '域名服务器</div><div class="fr WhLeList-right"><span>(.*)</span></div></li><li class="clearfix bor-b1s "><div class="fl WhLeList-left">DNS'  # 域名服务器
     key5 = 'DNS</div><div class="fr WhLeList-right">(.*)</div></li><li class="clearfix bor-b1s bg-list"><div class="fl WhLeList-left">状态'  # DNS
     """解析resp，获取IP信息及网络名称"""
@@ -63,7 +63,7 @@ def get_urls():
         for sheet in sheet_list:
             table = data.sheets()[sheet]
             urls.extend(table.col_values(args.c)[1:])
-        return urls
+        return list(set(urls))
     # 读取txt中的url
     if f.endswith("txt"):
         with open(f, encoding="utf-8") as file:
@@ -87,8 +87,8 @@ async def run(urls):
 
 
 if __name__ == '__main__':
-    urls = get_urls()
+    # urls = get_urls()
     loop = asyncio.get_event_loop()
-    task = asyncio.ensure_future(run(urls))
-    # task = asyncio.ensure_future(whois("huazhu.com"))
+    # task = asyncio.ensure_future(run(urls))
+    task = asyncio.ensure_future(whois("www.baifu-tech.net"))
     loop.run_until_complete(task)

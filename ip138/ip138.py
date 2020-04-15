@@ -53,13 +53,13 @@ def get_urls():
         for sheet in sheet_list:
             table = data.sheets()[sheet]
             urls.extend(table.col_values(args.c)[1:])
-        return urls
+        return list(set(urls))
     # 读取txt中的url
     if f.endswith("txt"):
         with open(f, encoding="utf-8") as file:
             for url in file:
                 urls.append(url.strip())
-        return urls
+        return list(set(urls))
 
 
 # 写报告
