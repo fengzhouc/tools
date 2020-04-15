@@ -2,7 +2,6 @@
 import asyncio
 import csv
 import re
-import time
 
 import aiohttp
 import aiomultiprocess
@@ -65,7 +64,7 @@ def get_urls():
 
 # 写报告
 def report(data):
-    file = "{}.csv".format("ip138-{}".format(time.time()))
+    file = "{}.csv".format("ip138")
 
     with open(file, 'a', newline="\n") as f:
         w = csv.writer(f)

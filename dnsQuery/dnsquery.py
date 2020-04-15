@@ -1,6 +1,5 @@
 # encoding=utf-8
 import csv
-import time
 
 import xlrd
 from dns import resolver
@@ -16,9 +15,9 @@ def query(domain, type):
         for i in ans:
             result.append([domain, i.address])
     except NXDOMAIN as e:
-        report([[domain, str(e)], ], "dna_error-{}".format(time.time()))
+        report([[domain, str(e)], ], "dna_error")
     finally:
-        report(result, "dnsquery-{}".format(time.time()))
+        report(result, "dnsquery")
 
 # 写报告
 def report(data, filename):
