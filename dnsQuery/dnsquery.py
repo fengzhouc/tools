@@ -15,9 +15,10 @@ def query(domain, type):
         for i in ans:
             result.append([domain, i.address])
     except NXDOMAIN as e:
-        report([[domain, str(e)], ], "dna_error")
+        report([[domain, str(e)], ], "dna_error-{}".format(type))
     finally:
-        report(result, "dnsquery")
+        report(result, "dnsquery-{}".format(type))
+
 
 # 写报告
 def report(data, filename):
