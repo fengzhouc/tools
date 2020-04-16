@@ -1,24 +1,25 @@
 # encoding=utf-8
 import csv
 
+import dns
 import xlrd
 from dns import resolver
 from dns.exception import Timeout
-from dns.resolver import NXDOMAIN
+from dns.resolver import NXDOMAIN, NoAnswer
 
 from cmdline import parse_args
 
 
-def query(domain, type):
-    result = []
-    try:
-        ans = resolver.query(domain, type)
-        for i in ans:
-            result.append([domain, i.address])
-    except (NXDOMAIN, Timeout) as e:
-        report([[domain, str(e)], ], "dna_error-{}".format(type))
-    finally:
-        report(result, "dnsquery-{}".format(type))
+def query(domain):
+    for t in ['A', "CNAME"]:
+        result = []
+        try:
+            ans = resolver.query(domain, t)
+            for i in ans:
+                result.append([domain, i])
+            report(result, "dnsquery-{}".format(t))
+        except (NXDOMAIN, Timeout, NoAnswer) as e:
+            report([[domain, str(e)], ], "dna_error")
 
 
 # 写报告
@@ -34,15 +35,6 @@ def get_urls():
     urls = []
     args = parse_args()
     f = args.f
-    # 读取excel的url，主要是titlescan的扫描结果
-    if f.endswith("xls") or f.endswith("xlxs"):
-        data = xlrd.open_workbook(f, encoding_override='utf-8')
-        sheet_list = [int(_) for _ in args.s.split(",")]  # 选定表
-        for sheet in sheet_list:
-            table = data.sheets()[sheet]
-            urls.extend(table.col_values(args.c)[1:])
-        return list(set(urls))
-    # 读取txt中的url
     if f.endswith("txt"):
         with open(f, encoding="utf-8") as file:
             for url in file:
@@ -53,4 +45,4 @@ def get_urls():
 if __name__ == '__main__':
     domains = get_urls()
     for domain in domains:
-        query(domain, parse_args().t)
+        query(domain)

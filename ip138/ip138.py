@@ -46,14 +46,6 @@ def get_urls():
     #     print("python ip138.py -f target.txt -d domian")
     #     exit(-1)
     f = args.f
-    # 读取excel的url，主要是titlescan的扫描结果
-    if f.endswith("xls") or f.endswith("xlxs"):
-        data = xlrd.open_workbook(f, encoding_override='utf-8')
-        sheet_list = [int(_) for _ in args.s.split(",")]  # 选定表
-        for sheet in sheet_list:
-            table = data.sheets()[sheet]
-            urls.extend(table.col_values(args.c)[1:])
-        return list(set(urls))
     # 读取txt中的url
     if f.endswith("txt"):
         with open(f, encoding="utf-8") as file:
