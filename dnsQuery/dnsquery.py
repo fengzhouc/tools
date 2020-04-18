@@ -11,15 +11,20 @@ from cmdline import parse_args
 
 
 def query(domain):
-    for t in ['A', "CNAME"]:
-        result = []
+    result = []
+    cname = ""
+    for t in ["CNAME", "A"]:
         try:
             ans = resolver.query(domain, t)
             for i in ans:
-                result.append([domain, i])
-            report(result, "dnsquery-{}".format(t))
+                if i.rdtype == dns.rdatatype.A:
+                    result.append([domain, i, cname])
+                else:
+                    cname = i
+
         except (NXDOMAIN, Timeout, NoAnswer) as e:
             report([[domain, str(e)], ], "dna_error")
+    report(result, "dnsquery-all")
 
 
 # 写报告
