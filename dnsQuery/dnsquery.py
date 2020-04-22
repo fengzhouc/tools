@@ -35,19 +35,17 @@ def query(domain, rqueue, equeue):
 def report():
     global rqueue
     global equeue
+    global STOP
     file = "{}.csv".format("dnsquery-all")
     efile = "{}.csv".format("dnsquery-error")
-    time.sleep(5)
     with open(file, 'a', newline="\n") as f:
         w = csv.writer(f)
-        while not rqueue.empty():
+        while not STOP:
             w.writerow(rqueue.get())
-            time.sleep(0.5)
     with open(efile, 'a', newline="\n") as f:
         w = csv.writer(f)
         while not equeue.empty():
             w.writerow(equeue.get())
-            time.sleep(0.5)
 
 
 def get_urls():
@@ -62,6 +60,7 @@ def get_urls():
 
 
 if __name__ == '__main__':
+    STOP = False
     try:
         domains = get_urls()
         rqueue = multiprocessing.Manager().Queue()
@@ -74,6 +73,8 @@ if __name__ == '__main__':
         print('Waiting for all subprocesses done...')
         pool.close()
         pool.join()  # 调用join之前，先调用close函数，否则会出错。执行完close后不会有新的进程加入到pool,join函数等待所有子进程结束
+        time.sleep(5)
+        STOP = True
         print("all done. tile: {}".format(time.time() - start))
 
     except KeyboardInterrupt as e:
@@ -81,3 +82,5 @@ if __name__ == '__main__':
         exit(-1)
     except Exception as e:
         print('\n[__main__.exception] %s %s' % (type(e), str(e)))
+    finally:
+        STOP = True
