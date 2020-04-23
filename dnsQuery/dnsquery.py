@@ -41,7 +41,10 @@ def report():
     with open(file, 'a', newline="\n") as f:
         w = csv.writer(f)
         while not STOP:
-            w.writerow(rqueue.get())
+            try:
+                w.writerow(rqueue.get(timeout=5.0))
+            except equeue.Empty as e:
+                pass
     with open(efile, 'a', newline="\n") as f:
         w = csv.writer(f)
         while not equeue.empty():
