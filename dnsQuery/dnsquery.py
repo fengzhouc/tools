@@ -4,6 +4,7 @@ import csv
 import multiprocessing
 import threading
 import time
+from queue import Empty
 
 import dns
 from dns import resolver
@@ -43,7 +44,7 @@ def report():
         while not STOP:
             try:
                 w.writerow(rqueue.get(timeout=5.0))
-            except equeue.Empty as e:
+            except Empty as e:
                 pass
     with open(efile, 'a', newline="\n") as f:
         w = csv.writer(f)
