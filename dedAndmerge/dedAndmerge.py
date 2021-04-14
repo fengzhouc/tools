@@ -19,8 +19,8 @@ def ded():
                         else:
                             if u != "":
                                 ded_urls.append(u.strip())
+    print("##ded data:")
     for url in list(set(ded_urls)):
-        print("##ded data:")
         print(url.strip())
     # with open("{}-new.txt".format(f), mode="w", newline="\n") as fie:
     #     for url in list(set(urls)):
