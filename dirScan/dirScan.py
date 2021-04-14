@@ -14,9 +14,7 @@ from lib.config import path_dict, processes, crons, childconcurrency, yellow, gr
 from lib.report import report
 from lib.db import db
 
-
-
-# 这里是状态码200的错误页面的关键字，后续需要更新以保证正确性
+# TODO 这里是状态码200的错误页面的关键字，后续需要更新以保证正确性
 _key404 = ["404", "找不到", "Not Found", "很抱歉"]
 # 缺少参数的关键字
 _key_lost_param = ["required", "parameter"]
@@ -89,8 +87,8 @@ async def schedule(url, queue):
         await asyncio.sleep(2)
         print("{}[schedule] bruting {} done:{} | {:.0%}{}".format(yellow,
                                                                   url,
-                                                                  total-queue.qsize(),
-                                                                  (total-queue.qsize())/total,
+                                                                  total - queue.qsize(),
+                                                                  (total - queue.qsize()) / total,
                                                                   end), end="\r")
     print()
 
@@ -138,15 +136,16 @@ def get_urls():
     args = parse_args()
     f = args.f
     # 读取excel的url，主要是titlescan的扫描结果
-    if f.endswith("xls") or f.endswith("xlxs"):
+    if f.lower().endswith("xls") or f.endswith("xlxs"):
         data = xlrd.open_workbook(f, encoding_override='utf-8')
         sheet_list = [int(_) for _ in args.s.split(",")]  # 选定表
         for sheet in sheet_list:
             table = data.sheets()[sheet]
+            # titlescan结果的index_url的结果, 第二列第二行的值
             urls.extend(table.col_values(1)[1:])
         return urls
     # 读取txt中的url
-    if f.endswith("txt"):
+    if f.lower().endswith("txt"):
         with open(f, encoding="utf-8") as file:
             for url in file:
                 urls.append(url.strip())
@@ -157,6 +156,7 @@ if __name__ == '__main__':
     start = time.time()
     try:
         urls = get_urls()
+        print(urls)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(run(urls))
     except KeyboardInterrupt as e:

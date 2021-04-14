@@ -36034,3 +36034,16 @@ ABBA
 .ftp
 .canna
 .backup
+/.htpasswd
+/prn
+/con
+/com3
+/com5
+/com6
+/com7
+/com8
+/com4
+/com2
+/com1
+/aux
+/nul
