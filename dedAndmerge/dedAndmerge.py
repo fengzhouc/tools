@@ -1,4 +1,6 @@
 # encoding=utf-8
+import time
+
 from cmdline import parse_args
 
 
@@ -17,7 +19,7 @@ def ded():
                         else:
                             if u != "":
                                 ded_urls.append(u.strip())
-        with open("{}-new.txt".format(f), mode="w") as fie:
+        with open("{}-{}.txt".format(f, time.time()), mode="w") as fie:
             urls.sort()
             for u in urls:
                 fie.write("{}\n".format(u.strip()))
