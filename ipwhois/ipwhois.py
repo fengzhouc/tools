@@ -18,49 +18,56 @@ headers = {
 
 async def whois(ip, queryOption="ipv4"):
     for _ip in ip.split(","):
-        data = None
+        # target_ip,target_ip_range,netname,company_description,netname_ip_range
         url = "http://ipwhois.cnnic.cn/bns/query/Query/ipwhoisQuery.do?txtquery={}&queryOption={}".format(_ip, queryOption)
         try:
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=1000) as session:
                 async with session.get(url, headers=headers, timeout=5) as resp:
                     resp_str = await resp.text(errors="ignore")
+                    # print(resp_str)
                     data = parse_resp(_ip, resp_str)
 
                 # 搜网络名称，得到ip段
                 name = ""
-                if data[2] is not "" or data[2] is not None:
-                    name = data[2].split("&")[0]
+                if data["netname"] != "" or data["netname"] is not None:
+                    name = data["netname"]
                 url = "http://ipwhois.cnnic.cn/bns/query/Query/ipwhoisQuery.do?txtquery={}&queryOption={}".format(name,
                                                                                                    "netname")
                 async with session.get(url, headers=headers, timeout=5) as resp:
                     resp_str = await resp.text(errors="ignore")
-                    data.append(parse_resp(_ip, resp_str, isnet=True))
+                    data["netname_ip_range"] = parse_resp(_ip, resp_str, isnet=True)
 
+                # print(data)
                 report(data)
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
             print("[EXCEPT] {} {}".format(_ip, str(e)))
 
 
 def parse_resp(ip, resp_str, isnet=False):
-    result = []
-    key1 = 'IPv4地址段:</font></td>\s*<td align="left" class="t_blue"><font size="2">(.*)</font></td>'  # ip范围
-    key2 = '网络名称:</font></td>\s*<td align="left" class="t_blue"><font size="2">(.*)</font></td>'  # 网络名称
-    key3 = '单位描述:</font></td>\s*<td align="left" class="t_blue"><font size="2">(.*)</font></td>'  # 单位名称1
+    # target_ip,target_ip_range,netname,company_description,netname_ip_range
+    result = {}
+    key1 = 'IPv4地址段:</font></td>\s*<td align="left" class="t_blue"><font size="2">(.*)&nbsp;</font></td>'  # ip范围
+    key2 = '网络名称:</font></td>\s*<td align="left" class="t_blue"><font size="2">(.*)&nbsp;</font></td>'  # 网络名称
+    key3 = '单位描述:</font></td>\s*<td align="left" class="t_blue"><font size="2">(.*)&nbsp;</font></td>'  # 单位名称1
     if isnet:
         ip = re.findall(key1, resp_str)
         return ip
 
-    result.append(ip)
+    result["target_ip"] = ip
     """解析resp，获取IP信息及网络名称"""
     data1 = re.findall(key1, resp_str)
     data2 = re.findall(key2, resp_str)
     data3 = re.findall(key3, resp_str)
 
-    result.extend(data1)
-    result.extend(data2)
-    result.extend(data3)
+    result["target_ip_range"] = data1
+    result["netname"] = data2
+    result["company_description"] = data3
 
     return result
+
+# TODO 将IP段转成CIDR格式
+def handler_ip():
+    pass
 
 def get_urls():
     urls = []
@@ -81,12 +88,13 @@ def get_urls():
                 urls.append(url.strip())
         return list(set(urls))
 
+file = "{}-{}.csv".format("ipwhois", time.time())
 # 写报告
 def report(data):
-    file = "{}.csv".format("ipwhois")
-
+    fieldnames = ["target_ip", "target_ip_range", "netname", "company_description", "netname_ip_range"]
     with open(file, 'a', newline="\n") as f:
-        w = csv.writer(f)
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w.writeheader()
         w.writerow(data)
 
 async def run(urls):
@@ -101,3 +109,4 @@ if __name__ == '__main__':
     task = asyncio.ensure_future(run(urls))
     # task = asyncio.ensure_future(whois("14.215.177.39"))
     loop.run_until_complete(task)
+    print("all done.")
