@@ -1,6 +1,7 @@
 # encoding=utf-8
 import asyncio
 import csv
+import functools
 import os
 import re
 import time
@@ -12,16 +13,19 @@ import xlrd
 from cmdline import parse_args
 
 headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/59.0.3071.104 Safari/537.36',
-    }
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/59.0.3071.104 Safari/537.36',
+}
 
-async def whois(ip, queryOption="ipv4"):
+
+async def whois(ip, file="", queryOption="ipv4"):
     for _ip in ip.split(","):
         # target_ip,target_ip_range,netname,company_description,netname_ip_range
-        url = "http://ipwhois.cnnic.cn/bns/query/Query/ipwhoisQuery.do?txtquery={}&queryOption={}".format(_ip, queryOption)
+        url = "http://ipwhois.cnnic.cn/bns/query/Query/ipwhoisQuery.do?txtquery={}&queryOption={}".format(_ip,
+                                                                                                          queryOption)
         try:
-            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=1000) as session:
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
+                                             conn_timeout=1000) as session:
                 async with session.get(url, headers=headers, timeout=5) as resp:
                     resp_str = await resp.text(errors="ignore")
                     # print(resp_str)
@@ -32,13 +36,13 @@ async def whois(ip, queryOption="ipv4"):
                 if data["netname"] != "" or data["netname"] is not None:
                     name = data["netname"]
                 url = "http://ipwhois.cnnic.cn/bns/query/Query/ipwhoisQuery.do?txtquery={}&queryOption={}".format(name,
-                                                                                                   "netname")
+                                                                                                                  "netname")
                 async with session.get(url, headers=headers, timeout=5) as resp:
                     resp_str = await resp.text(errors="ignore")
                     data["netname_ip_range"] = parse_resp(_ip, resp_str, isnet=True)
 
                 print(data)
-                report(data)
+                report(data, file)
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
             print("[EXCEPT] {} {}".format(_ip, str(e)))
 
@@ -65,9 +69,11 @@ def parse_resp(ip, resp_str, isnet=False):
 
     return result
 
+
 # TODO 将IP段转成CIDR格式
 def handler_ip():
     pass
+
 
 def get_urls():
     urls = []
@@ -88,9 +94,8 @@ def get_urls():
                 urls.append(url.strip())
         return list(set(urls))
 
-file = "{}-{}.csv".format("ipwhois", time.time())
 # 写报告
-def report(data):
+def report(data, file):
     fieldnames = ["target_ip", "target_ip_range", "netname", "company_description", "netname_ip_range"]
     with open(file, 'a', newline="\n") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
@@ -103,10 +108,12 @@ def report(data):
                 data["netname_ip_range"] = d
                 w.writerow(data)
 
+
 async def run(urls):
+    file = "{}-{}.csv".format("ipwhois", time.time())
     # 多进程协程并发爆破每个url
     async with aiomultiprocess.Pool() as pool:
-        await pool.map(whois, urls)
+        await pool.map(functools.partial(whois, file=file), urls)
 
 
 if __name__ == '__main__':
