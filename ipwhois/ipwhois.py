@@ -37,7 +37,7 @@ async def whois(ip, queryOption="ipv4"):
                     resp_str = await resp.text(errors="ignore")
                     data["netname_ip_range"] = parse_resp(_ip, resp_str, isnet=True)
 
-                # print(data)
+                print(data)
                 report(data)
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
             print("[EXCEPT] {} {}".format(_ip, str(e)))
@@ -94,8 +94,14 @@ def report(data):
     fieldnames = ["target_ip", "target_ip_range", "netname", "company_description", "netname_ip_range"]
     with open(file, 'a', newline="\n") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        w.writerow(data)
+        # w.writeheader()
+        netname_ip_range = data["netname_ip_range"]
+        if len(netname_ip_range) == 0:
+            w.writerow(data)
+        else:
+            for d in netname_ip_range:
+                data["netname_ip_range"] = d
+                w.writerow(data)
 
 async def run(urls):
     # 多进程协程并发爆破每个url
