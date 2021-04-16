@@ -59,9 +59,9 @@ def parse_resp(ip, resp_str, isnet=False):
     data2 = re.findall(key2, resp_str)
     data3 = re.findall(key3, resp_str)
 
-    result["target_ip_range"] = data1
-    result["netname"] = data2
-    result["company_description"] = data3
+    result["target_ip_range"] = data1[0]
+    result["netname"] = data2[0]
+    result["company_description"] = data3[0]
 
     return result
 
