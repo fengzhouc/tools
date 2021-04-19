@@ -13,6 +13,10 @@ def parse_args():
 
     parser.add_argument("-f", help="Load targets from urls, support excel and txt;")
 
+    parser.add_argument("-f1", help="Load targets from urls, support excel and txt;")
+
+    parser.add_argument("-t", help="ip/line")
+
     if len(sys.argv) == 1:
         sys.argv.append("-h")
 
