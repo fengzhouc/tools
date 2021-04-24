@@ -43,8 +43,7 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
                 text = await resp.text(errors="ignore")
                 title = getTitle(text)
                 result["title"] = title if title else ""
-                content = await resp.text()
-                result["contenthash"] = hash(content)
+                result["contenthash"] = hash(text)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
         print("{}[EXCEPT] {} {} {}".format(red, _url, str(e), end))
