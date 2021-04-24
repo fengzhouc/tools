@@ -4,7 +4,7 @@ import time
 
 import aiohttp
 from aiomultiprocess import Pool
-from bs4 import BeautifulSoup
+from lib.config import yellow, green, red, blue, end
 import string
 import random
 import asyncio
@@ -47,7 +47,7 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
                 result["contenthash"] = hash(content)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
-        print("[EXCEPT] {} {}".format(_url, str(e)))
+        print("{}[EXCEPT] {} {} {}".format(red, _url, str(e), end))
         # 连接失败的时候，信息设置为None
         result["index_url"] = _url
         result["Location"] = None

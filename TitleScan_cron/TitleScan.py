@@ -10,6 +10,8 @@ from aiomultiprocess import Pool
 from lib.cmdline import parse_args
 from lib.core import getStatusAndTitle
 
+from lib.config import yellow, green, red, blue, end
+
 # 设置超时时间，防止请求时间过长导致程序长时间停止
 socket.setdefaulttimeout(5)
 
@@ -204,8 +206,8 @@ def getresult():
     dline = 0
     eline = 0
     while not STOP_ME:
-        print("[#Report_Thread] A:{} B:{} C:{} D:{} E:{} total:{} ".format(aline, bline, cline, dline, eline,
-                                                                      aline + bline + cline + dline + eline), end="\r")
+        print("{}[#Report_Thread] A:{} B:{} C:{} D:{} E:{} total:{} {}".format(yellow, aline, bline, cline, dline, eline,
+                                                                      aline + bline + cline + dline + eline, end), end="\r")
         if a_results.qsize() > 0:
             aline = writerdata(a, a_results.get(), aline)
         if b_results.qsize() > 0:
@@ -217,7 +219,7 @@ def getresult():
         if e_results.qsize() > 0:
             eline = writerdata(e, e_results.get(), eline)
     wb.save("./report/{}.xls".format(report_filename))
-    print("report save success, file name: {}.xls".format(report_filename))
+    print("{}report save success, file name: {}.xls{}".format(green, report_filename, end))
 
 
 def writerdata(worksheet, message, row):
@@ -271,10 +273,10 @@ if __name__ == "__main__":
         loop.run_until_complete(task)
 
     except KeyboardInterrupt as e:
-        print('\nYou aborted the scan.')
+        print('{}You aborted the scan.{}'.format(yellow, end))
         exit(1)
     except Exception as e:
-        print('\n[__main__.exception] %s %s' % (type(e), str(e)))
+        print('{}[__main__.exception] {} {}{}'.format(red, type(e), str(e), end))
     finally:
         STOP_ME = True
-        print("\nall done, times:{}".format(time.time() - start))
+        print("{}all done, times:{}{}".format(green, time.time() - start, end))
