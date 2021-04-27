@@ -34,7 +34,7 @@ async def get(url, session, redirect=False):
             return resp_text, status, None
 
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
-    except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError) as e:
+    except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, aiohttp.client_exceptions.InvalidURL) as e:
         print("{}[Except] {} ,error_message：{}.{}".format(red, url, str(e), end))
         return "", "", str(e)
 

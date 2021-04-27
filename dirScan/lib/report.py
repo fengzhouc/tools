@@ -14,7 +14,7 @@ def report(url, r_queue, report_dir):
     c_result = []
     url_info = parse.urlparse(url)
     report_file = url_info[1].replace(":", "#")  # windows文件不允许出现：
-    file = "report/{}/{}.csv".format(report_dir, report_file)
+    a_file = "report/{}/{}.csv".format(report_dir, report_file)
     c_file = "report/{}/c.csv".format(report_dir)
     while not r_queue.empty():
         result = r_queue.get_nowait()
@@ -24,7 +24,7 @@ def report(url, r_queue, report_dir):
             c_result.append(result)
 
     # C类结果
-    with open(c_file, "a", newline="\n") as f:
+    with open(c_file, "a", encoding="utf-8", newline="\n") as f:
         w = csv.writer(f)
         for result in c_result:
             w.writerow(result)
@@ -32,12 +32,12 @@ def report(url, r_queue, report_dir):
     if len(r_temp) == 0:
         return
     # A,B类的结果
-    with open(file, 'w', newline="\n") as f:
+    with open(a_file, 'w', newline="\n") as f:
         w = csv.writer(f)
         for result in r_temp:
             w.writerow(result)
 
 
 if __name__ == "__main__":
-    url_info = parse.urlparse("http://sdfa//sdfa/sdfas/dfa?dfa")
-    print(url_info.path[1:])
+    url_info = parse.urlparse("http://sdfa.com:8080/sdfa/sdfas/dfa?dfa")
+    print(url_info[1])
