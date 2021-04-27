@@ -35,8 +35,9 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
             # print("utl: ", _url)
             async with session.get(_url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
                 # 正则匹配获取当前请求url的主页url
-                url_info = parse.urlparse(resp.url._val.geturl())
-                result["index_url"] = "://".join(url_info[0:2])
+                # url_info = parse.urlparse(resp.url._val.geturl())
+                # result["index_url"] = "://".join(url_info[0:2])
+                result["index_url"] = _url
                 result["Location"] = resp.headers.get("Location")
                 result["status"] = resp.status
                 # 获取title
@@ -46,7 +47,7 @@ async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
                 result["contenthash"] = hash(text)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
-        print("{}[EXCEPT] {} {} {}".format(red, _url, str(e), end))
+        # print("{}[EXCEPT] {} {} {}".format(red, _url, "connect error", end))
         # 连接失败的时候，信息设置为None
         result["index_url"] = _url
         result["Location"] = None

@@ -33,7 +33,7 @@ async def scan_process(dm, result_queue=None):
     # 获取不存在资源的响应信息，不跟进重定向，getStatusAndTitle函数已处理
     http_mess = await getStatusAndTitle(dm)
 
-    # 扫描列表，主要是http。https两种协议
+    # 扫描列表，主要是http/https两种协议
     target_dict = {}
     # http状态码400 或者请求失败时尝试https
     if http_mess.get("status") == 400 or http_mess.get("status") is None:
@@ -63,9 +63,10 @@ async def scan_process(dm, result_queue=None):
             target_dict["https"] = https_mess
 
     # 循环扫描target_dict里的目标，这样就包含了http、https
-    for pro in target_dict:
+    for pro in target_dict.keys():
         _https = True if "https" in pro.split("/") else False
         _mess = target_dict[pro]
+        print("for ", _mess.get("index_url"))
 
         # 这里不会有http 400的情况，上面做了过滤，如果http 400 ，则target_dict中只有https
         if _mess.get("status") == 400 and _https:
@@ -82,6 +83,7 @@ async def scan_process(dm, result_queue=None):
             # 如果包含关键字，则是状态码为200的错误页面，这种情况错误处理是自定义的，基本可以判断是正常网站，直接存入A类
             if _is404:
                 a_results.put(_mess.values())
+                print("_is404 ", i_mess.get("index_url"))
             # 如果不包含，则需要进一步确认主页
             else:
                 # _checkcentent=True, 不存在目录跟主页状态码都在200的情况下进行相似度比较
@@ -96,10 +98,12 @@ async def scan_process(dm, result_queue=None):
                 # 其他类的结果
                 else:
                     r.put(index_mess.values())
+                    print("else ", i_mess.get("index_url"))
         # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
             i_mess = await getStatusAndTitle(dm, index=True, redirect=True, https=_https)
             a_results.put(i_mess.values())
+            print("30x ", i_mess.get("index_url"))
         # 不存在目录请求状态码404，进行分支访问主页继续判断
         elif _mess.get("status") == 404:
             r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results, d_results, e_results)
@@ -112,6 +116,7 @@ async def scan_process(dm, result_queue=None):
             # 其他类的结果
             else:
                 r.put(index_mess.values())
+                print("404 ", i_mess.get("index_url"))
 
         # 不存在目录请求状态码是否401,407,415，都是需要认证的,大概率正常网站，因为做了认证
         elif _mess.get("status") in [401, 407, 415]:
@@ -148,8 +153,8 @@ async def getindexmess(dm, mess404, _https, a_results, b_results, c_results, d_r
     # 主页状态码200，跟不存在资源请求的响应作比较，看是否相同，相同则C类，否则A类
     if _mess_index.get("status") == 200:
         # 不存在目录跟主页状态码都在200的情况下进行相似度比较
-        if _checkcentent and (mess404.get("header_count") == _mess_index.get("header_count")) and (
-                mess404.get("title") == _mess_index.get("title")):
+        if _checkcentent and (mess404.get("header_count") == _mess_index.get("header_count")) \
+                and (mess404.get("contenthash") == _mess_index.get("contenthash")):
             return c_results, _mess_index
         return a_results, _mess_index
     # 主页状态码30x，A类
@@ -207,7 +212,8 @@ def getresult():
     eline = 0
     while not STOP_ME:
         print("{}[#Report_Thread] A:{} B:{} C:{} D:{} E:{} total:{} {}".format(yellow, aline, bline, cline, dline, eline,
-                                                                      aline + bline + cline + dline + eline, end), end="\r")
+                                                                      aline + bline + cline + dline + eline, end),
+                                                                        end="\r")
         if a_results.qsize() > 0:
             aline = writerdata(a, a_results.get(), aline)
         if b_results.qsize() > 0:
@@ -273,10 +279,10 @@ if __name__ == "__main__":
         loop.run_until_complete(task)
 
     except KeyboardInterrupt as e:
-        print('{}You aborted the scan.{}'.format(yellow, end))
+        print('\n{}You aborted the scan.{}'.format(yellow, end))
         exit(1)
     except Exception as e:
-        print('{}[__main__.exception] {} {}{}'.format(red, type(e), str(e), end))
+        print('\n{}[__main__.exception] {} {}{}'.format(red, type(e), str(e), end))
     finally:
         STOP_ME = True
-        print("{}all done, times:{}{}".format(green, time.time() - start, end))
+        print("\n{}all done, times:{}{}".format(green, time.time() - start, end))
