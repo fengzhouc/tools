@@ -9,7 +9,7 @@ import sys
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="eg: python dirScan.py -u https://example.com -d top3000 -t path")
+    parser = argparse.ArgumentParser(description="eg: python dirScan.py -u https://example.com -d 3000 -t api")
 
     parser.add_argument("-f", help="Load targets from urls, support excel and txt; "
                                    "eg: python dirScan.py -f xx.txt; "
