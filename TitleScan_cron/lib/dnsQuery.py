@@ -25,12 +25,11 @@ def dns_query(qname, qtype="A", rqueue=None):
     result = {}
     resolver = dns_resolver()
     try:
-        answer = resolver.resolve(qname, qtype)
+        answer = resolver.resolve(qname.strip(), qtype)
         answer_list = []
         for aw in answer:
             answer_list.append(str(aw))
-        print('{}[dnsQuery] Try to query {} record of {}, answer: {}{}'.format(blue, qname.strip(), qtype,
-                                                                               answer_list, end))
+        print('{}[dnsQuery] {} record of {}, answer: {}{}'.format(blue, qname.strip(), qtype, answer_list, end))
         result[qname] = answer_list
     except Exception as e:
         print('{}[Exception] Query {} record of {} failed{}'.format(red, qname.strip(), qtype, end))

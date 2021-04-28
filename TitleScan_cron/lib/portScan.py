@@ -67,7 +67,7 @@ def port_scan(rqueue=None):
                         except _queue.Empty:  # on python 2 use Queue.Empty
                             break
                 elif ping is None:
-                    print('{}[portScan] 主机 {} 处于关闭状态或本机被该主机过滤，无法对其使用 ping 探测{}'.format(red, ip, end))
+                    print("{}[portScan] 主机 {} 处于关闭状态或本机被该主机过滤，无法对其使用ping探测{}".format(red, ip, end))
             result.append({dm.strip(): ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break
@@ -79,6 +79,6 @@ def port_scan(rqueue=None):
 if __name__ == '__main__':
     ip = "121.8.148.87"
     start_time = time.time()
-    port_scan(ip)
+    main(ip)
     end_time = time.time()
-    print('[time cost] : ' + str(end_time-start_time) + ' 秒')
+    print('[time cost] : ' + str(end_time-start_time))
