@@ -21,7 +21,7 @@ async def getStatusAndTitle(domain, target, index=False, https=False, redirect=F
     """
     _url = getUrl(target, index=index, https=https)
     # 结果保存
-    result = {"target_domain": domain.strip(), "original_domain": target.strip(), }
+    result = {"target_domain": domain, "original_domain": target, }
     if not _url:
         raise ValueError("url is none.")
 

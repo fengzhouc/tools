@@ -43,7 +43,7 @@ def port_scan(rqueue=None):
             ips = list(queue_ip.values())[0]  # 对应域名的所有ip
             ipps = []  # 域名/ip组合端口的所有数据
             for ip in ips:
-                ip = ip.strip()
+                # ip = ip.strip()
                 if len(ip_re.findall(ip)) > 0:
                     # 这里因为dnsquery在查询不到的时候,返回域名,所以这里相应的处理,直接添加
                     ipps.append(ip)
@@ -68,7 +68,7 @@ def port_scan(rqueue=None):
                             break
                 elif ping is None:
                     print("{}[portScan] 主机 {} 处于关闭状态或本机被该主机过滤，无法对其使用ping探测{}".format(red, ip, end))
-            result.append({dm.strip(): ipps})
+            result.append({dm: ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break
     _pool.close()
