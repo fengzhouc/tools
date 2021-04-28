@@ -274,7 +274,7 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     dns_pool.join()
 
     time.sleep(1)
-    print("{}[TiltleScan] start ScanProcess, total: {}{}".format(green, len(targets), end))
+    print("{}[TiltleScan] start ScanProcess, total: {}{}".format(blue, len(targets), end))
     # 处理队列中结果的线程
     threading.Thread(target=getresult).start()
     async with Pool(processes=_pool) as pool:
