@@ -255,26 +255,26 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     # 读取所有域名，并去重
     dm_list = list(set(open(args_file).readlines()))
     # 查询每个域名的ip
-    print("{}[dnsQuery] start dnsQuery.{}".format(blue, end))
+    print("{}[DnsQuery] Start dnsQuery......{}".format(blue, end))
     # rqueue是结果队列, {dm: [ip]}
     rqueue = multiprocessing.Manager().Queue()
     start_dns = time.time()
     dns_pool = multiprocessing.Pool(processes=_pool)
     dns_pool.map(functools.partial(dns_query, rqueue=rqueue), dm_list)
-    print("{}[dnsQuery] dnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
+    print("{}[DnsQuery] DnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
 
     time.sleep(1)
     # TODO 端口扫描，返回端口跟域名/ip组合的列表
     # 预期返回: [{dm:[ip:port,dm:port]}]
-    print("{}[portScan] start portScan.{}".format(yellow, end))
+    print("{}[PortScan] Start portScan......{}".format(yellow, end))
     start_dns = time.time()
     targets = port_scan(rqueue)
-    print("{}[portScan] portScan Over, time: {}{}".format(yellow, time.time() - start_dns, end))
+    print("{}[PortScan] PortScan Over, time: {}{}".format(yellow, time.time() - start_dns, end))
     dns_pool.close()
     dns_pool.join()
 
     time.sleep(1)
-    print("{}[TiltleScan] start ScanProcess, total: {}{}".format(blue, len(targets), end))
+    print("{}[TiltleScan] Start ScanProcess......{}".format(blue, end))
     # 处理队列中结果的线程
     threading.Thread(target=getresult).start()
     async with Pool(processes=_pool) as pool:
