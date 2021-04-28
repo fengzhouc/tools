@@ -11,17 +11,17 @@ import asyncio
 from urllib import parse
 
 
-async def getStatusAndTitle(domain, index=False, https=False, redirect=False):
+async def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
     """
     发送请求，获取状态码及title
     :param https: 是否使用https协议发送请求
     :param redirect: 是否跟进重定向
     :param domain: 域名
-    :return: dict [original_domain，rediect_url, status，title, header_count, content-length]
+    :return: dict [target_domain, original_domain, rediect_url, status，title, header_count, content-length]
     """
-    _url = getUrl(domain, index=index, https=https)
+    _url = getUrl(target, index=index, https=https)
     # 结果保存
-    result = {"original_domain": domain.strip(), }
+    result = {"target_domain": domain.strip(), "original_domain": target.strip(), }
     if not _url:
         raise ValueError("url is none.")
 

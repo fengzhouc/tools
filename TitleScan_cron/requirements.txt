@@ -4,3 +4,5 @@ bs4
 requests
 aiohttp
 aiomultiprocess
+dnspython
+scapy

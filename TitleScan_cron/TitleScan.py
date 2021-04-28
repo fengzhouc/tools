@@ -11,6 +11,8 @@ from lib.cmdline import parse_args
 from lib.core import getStatusAndTitle
 
 from lib.config import yellow, green, red, blue, end
+from lib.dnsQuery import dns_query
+from lib.portScan import port_scan
 
 # 设置超时时间，防止请求时间过长导致程序长时间停止
 socket.setdefaulttimeout(5)
@@ -21,52 +23,55 @@ _key404 = ["404", "找不到", "Not Found"]
 keyworkd = ["访问拦截",
             "网站访问报错", ]
 
-async def scan_process(dm, result_queue=None):
+async def scan_process(target, result_queue=None):
     """
     主逻辑
-    :param dm: 域名
+    :param target: 扫描目标 {domain, [ip:port,dm:port]}
     :param result_queue: 每类结果的队列
     :return:
     """
     # 不同分类的结果队列
     a_results, b_results, c_results, d_results, e_results = result_queue
-    # 获取不存在资源的响应信息，不跟进重定向，getStatusAndTitle函数已处理
-    http_mess = await getStatusAndTitle(dm)
-
+    domain = list(target.keys())[0]  # 域名
+    ips = list(target.values())[0]  # 域名/ip组合端口的所有数据
     # 扫描列表，主要是http/https两种协议
     target_dict = {}
-    # http状态码400 或者请求失败时尝试https
-    if http_mess.get("status") == 400 or http_mess.get("status") is None:
-        https_mess = await getStatusAndTitle(dm, https=True)
-        target_dict["https"] = https_mess
-    elif str(http_mess.get("status")).startswith("30"):
-        https_mess = await getStatusAndTitle(dm, https=True)
-        # 请求失败时,则只支持http
-        if https_mess.get("status") is None:
-            target_dict["http"] = http_mess
-        # https状态码20x，而且重定向是同一个域，则认为是同样的网站，支持http/https
-        elif str(https_mess.get("status")).startswith("20") and http_mess["original_domain"] == http_mess["Location"]:
-            target_dict["http"] = http_mess
-        # https状态码30x，如果跳转同一个页面，则认为是同样的网站，支持http/https
-        elif str(https_mess.get("status")).startswith("30") and https_mess["Location"] == http_mess["Location"]:
-            target_dict["http"] = http_mess
+    for dm in ips:
+        # 获取不存在资源的响应信息，不跟进重定向，getStatusAndTitle函数已处理
+        http_mess = await getStatusAndTitle(domain, dm)
+        # http状态码400 或者请求失败时尝试https
+        if http_mess.get("status") == 400 or http_mess.get("status") is None:
+            https_mess = await getStatusAndTitle(domain, dm, https=True)
+            target_dict[https_mess["index_url"]] = https_mess
+        elif str(http_mess.get("status")).startswith("30"):
+            https_mess = await getStatusAndTitle(domain, dm, https=True)
+            # 请求失败时,则只支持http
+            if https_mess.get("status") is None:
+                target_dict[http_mess["index_url"]] = http_mess
+            # https状态码20x，而且重定向是同一个域，则认为是同样的网站，支持http/https
+            elif str(https_mess.get("status")).startswith("20") and http_mess["original_domain"] == http_mess["Location"]:
+                target_dict[http_mess["index_url"]] = http_mess
+            # https状态码30x，如果跳转同一个页面，则认为是同样的网站，支持http/https
+            elif str(https_mess.get("status")).startswith("30") and https_mess["Location"] == http_mess["Location"]:
+                target_dict[http_mess["index_url"]] = http_mess
+            else:
+                target_dict[http_mess["index_url"]] = http_mess
+                target_dict[https_mess["index_url"]] = https_mess
         else:
-            target_dict["http"] = http_mess
-            target_dict["https"] = https_mess
-    else:
-        https_mess = await getStatusAndTitle(dm, https=True)
-        # 如果状态码即title都相同，则认为是同一个站点，支持http/https
-        if http_mess.get("status") == https_mess.get("status") and http_mess.get("title") == https_mess.get("title"):
-            target_dict["http"] = http_mess
-        else:
-            target_dict["http"] = http_mess
-            target_dict["https"] = https_mess
+            https_mess = await getStatusAndTitle(domain, dm, https=True)
+            # 如果状态码即title都相同，则认为是同一个站点，支持http/https
+            if http_mess.get("status") == https_mess.get("status") and http_mess.get("title") == https_mess.get("title"):
+                target_dict[http_mess["index_url"]] = http_mess
+            else:
+                target_dict[http_mess["index_url"]] = http_mess
+                target_dict[https_mess["index_url"]] = https_mess
 
+    # print(target_dict)
     # 循环扫描target_dict里的目标，这样就包含了http、https
     for pro in target_dict.keys():
-        _https = True if "https" in pro.split("/") else False
+        _https = True if "https" in pro.split("://") else False
         _mess = target_dict[pro]
-        print("for ", _mess.get("index_url"))
+        dm = _mess["original_domain"]
 
         # 这里不会有http 400的情况，上面做了过滤，如果http 400 ，则target_dict中只有https
         if _mess.get("status") == 400 and _https:
@@ -83,40 +88,36 @@ async def scan_process(dm, result_queue=None):
             # 如果包含关键字，则是状态码为200的错误页面，这种情况错误处理是自定义的，基本可以判断是正常网站，直接存入A类
             if _is404:
                 a_results.put(_mess.values())
-                print("_is404 ", i_mess.get("index_url"))
             # 如果不包含，则需要进一步确认主页
             else:
                 # _checkcentent=True, 不存在目录跟主页状态码都在200的情况下进行相似度比较
-                r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results,
+                r, index_mess = await getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results,
                                                    d_results, e_results, _checkcentent=True)
                 # 主页如果属于D类，即状态码501/502/503/504/请求失败，则重新请求请求再确认一次
                 if r is d_results:
                     # 以第二次访问的结果为准保存
-                    r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results,
+                    r, index_mess = await getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results,
                                                        d_results, e_results, _checkcentent=True)
                     r.put(index_mess.values())
                 # 其他类的结果
                 else:
                     r.put(index_mess.values())
-                    print("else ", i_mess.get("index_url"))
         # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
-            i_mess = await getStatusAndTitle(dm, index=True, redirect=True, https=_https)
+            i_mess = await getStatusAndTitle(domain, dm, index=True, redirect=True, https=_https)
             a_results.put(i_mess.values())
-            print("30x ", i_mess.get("index_url"))
         # 不存在目录请求状态码404，进行分支访问主页继续判断
         elif _mess.get("status") == 404:
-            r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results, d_results, e_results)
+            r, index_mess = await getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results, d_results, e_results)
             # 如果是D类，则重新请求再确认一次
             if r is d_results:
                 # 以第二次访问的结果为准保存
-                r, index_mess = await getindexmess(dm, _mess, _https, a_results, b_results, c_results,
+                r, index_mess = await getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results,
                                                    d_results, e_results)
                 r.put(index_mess.values())
             # 其他类的结果
             else:
                 r.put(index_mess.values())
-                print("404 ", i_mess.get("index_url"))
 
         # 不存在目录请求状态码是否401,407,415，都是需要认证的,大概率正常网站，因为做了认证
         elif _mess.get("status") in [401, 407, 415]:
@@ -132,7 +133,7 @@ async def scan_process(dm, result_queue=None):
             e_results.put(_mess.values())
 
 
-async def getindexmess(dm, mess404, _https, a_results, b_results, c_results, d_results, e_results, _checkcentent=False):
+async def getindexmess(domain, dm, mess404, _https, a_results, b_results, c_results, d_results, e_results, _checkcentent=False):
     """
     主页请求判断分支函数封装
     :param dm: 域名，生成url
@@ -142,7 +143,7 @@ async def getindexmess(dm, mess404, _https, a_results, b_results, c_results, d_r
     :return:  站点分类，A,B,C,D,E
     """
     # 请求主页信息
-    _mess_index = await getStatusAndTitle(dm, index=True, https=_https)
+    _mess_index = await getStatusAndTitle(domain, dm, index=True, https=_https)
     # 特殊错误识别，相似度比较
     if _mess_index.get("title") in keyworkd or \
             (_mess_index.get("status") == mess404.get("status") and
@@ -179,7 +180,7 @@ def getresult():
     :return:
     """
     wb = xlwt.Workbook()
-    column_keys = ['original_domain', 'index_url', "Location", 'status', 'title', 'contenthash']
+    column_keys = ['target_domain', 'original_domain', 'index_url', "Location", 'status', 'title', 'contenthash']
     a = wb.add_sheet("A类 正常网站（重点关注）")
     for column, m in enumerate(column_keys):
         a.write(0, column, m)
@@ -253,11 +254,33 @@ async def main(a_results, b_results, c_results, d_results, e_results):
         _pool = int(argv.p)
     # 读取所有域名，并去重
     dm_list = list(set(open(args_file).readlines()))
-    # dm_list = open(args_file).readlines()
+    # 查询每个域名的ip
+    print("{}[dnsQuery] start dnsQuery.{}".format(blue, end))
+    # rqueue是结果队列, {dm: [ip]}
+    rqueue = multiprocessing.Manager().Queue()
+    start_dns = time.time()
+    dns_pool = multiprocessing.Pool(processes=_pool)
+    dns_pool.map(functools.partial(dns_query, rqueue=rqueue), dm_list)
+    print("{}[dnsQuery] dnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
+
+    time.sleep(1)
+    # TODO 端口扫描，返回端口跟域名/ip组合的列表
+    # 预期返回: [{dm:[ip:port,dm:port]}]
+    print("{}[portScan] start portScan.{}".format(yellow, end))
+    start_dns = time.time()
+    targets = port_scan(rqueue)
+    print("{}[portScan] portScan Over, time: {}{}".format(yellow, time.time() - start_dns, end))
+    dns_pool.close()
+    dns_pool.join()
+
+    time.sleep(1)
+    print("{}[TiltleScan] start ScanProcess, total: {}{}".format(green, len(targets), end))
+    # 处理队列中结果的线程
+    threading.Thread(target=getresult).start()
     async with Pool(processes=_pool) as pool:
         result = await pool.map(
             functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results, e_results)),
-            dm_list)
+            targets)
 
 
 if __name__ == "__main__":
@@ -269,9 +292,6 @@ if __name__ == "__main__":
         c_results = multiprocessing.Manager().Queue()
         d_results = multiprocessing.Manager().Queue()
         e_results = multiprocessing.Manager().Queue()
-
-        # 处理队列中结果的线程
-        threading.Thread(target=getresult).start()
 
         start = time.time()
         task = asyncio.ensure_future(main(a_results, b_results, c_results, d_results, e_results))
