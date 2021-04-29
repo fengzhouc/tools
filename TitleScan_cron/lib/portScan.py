@@ -1,8 +1,7 @@
 # encoding=utf-8
+
 import _queue
 import multiprocessing
-import threading,time
-import sys
 from scapy.all import *
 from scapy.layers.inet import IP, ICMP, TCP
 from lib.config import processes, ports, yellow, end, red
@@ -67,7 +66,7 @@ def port_scan(rqueue=None):
                         except _queue.Empty:  # on python 2 use Queue.Empty
                             break
                 elif ping is None:
-                    print("{}[PortScan] {} 无法 ping 通{}".format(red, ip, end))
+                    print("{}[PortScan] {}无法ping通{}".format(red, ip, end))
             result.append({dm: ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break

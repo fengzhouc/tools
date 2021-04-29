@@ -8,7 +8,6 @@ from lib.config import yellow, green, red, blue, end
 import string
 import random
 import asyncio
-from urllib import parse
 
 
 async def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
