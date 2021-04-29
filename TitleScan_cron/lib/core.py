@@ -45,20 +45,27 @@ async def getStatusAndTitle(domain, target, index=False, https=False, redirect=F
                 result["title"] = title if title else ""
                 result["contenthash"] = hash(text)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
-    except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError, RuntimeError) as e:
+    except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError, asyncio.TimeoutError,
+            RuntimeError) as e:
         # print("{}[EXCEPT] {} {} {}".format(red, _url, "connect error", end))
         # 连接失败的时候，信息设置为None
         result["index_url"] = _url
         result["Location"] = None
-        result["status"] = None
+        result["status"] = "Connect Fail"
         result["title"] = ""
+        result["contenthash"] = None
+    except ConnectionResetError as e:
+        # 连接重置,可能还是个站点，但出现了某种去情况，手工试试
+        result["index_url"] = _url
+        result["Location"] = None
+        result["status"] = "Connect Reset"
+        result["title"] = "Try it by hand"
         result["contenthash"] = None
     except UnicodeDecodeError as e:
         # 编码不一致的情况，或者响应不是文本，而是二进制流
         result["contenthash"] = None
     finally:
         pass
-
     # print(result)
     return result
 
@@ -75,12 +82,6 @@ def getTitle(resp):
     if title:
         return title[0]
     return None
-    # soup = BeautifulSoup(resp, "html.parser")
-    # _title = soup.find("title")
-    # if not _title:
-    #     return None
-    # else:
-    #     return _title.text
 
 
 def getUrl(domain, index=False, https=False):

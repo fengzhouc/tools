@@ -212,9 +212,9 @@ def getresult():
     dline = 0
     eline = 0
     while not STOP_ME:
-        print("{}[#Report_Thread] A:{} B:{} C:{} D:{} E:{} total:{} {}".format(yellow, aline, bline, cline, dline, eline,
-                                                                      aline + bline + cline + dline + eline, end),
-                                                                        end="\r")
+        print("{}[Schedule] A:{} B:{} C:{} D:{} E:{} ,total:{} {}".format(yellow, aline, bline, cline, dline, eline,
+                                                                          aline + bline + cline + dline + eline, end),
+              end="\r")
         if a_results.qsize() > 0:
             aline = writerdata(a, a_results.get(), aline)
         if b_results.qsize() > 0:
@@ -261,6 +261,8 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     start_dns = time.time()
     dns_pool = multiprocessing.Pool(processes=_pool)
     dns_pool.map(functools.partial(dns_query, rqueue=rqueue), dm_list)
+    dns_pool.close()
+    dns_pool.join()
     print("{}[DnsQuery] DnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
 
     time.sleep(1)
@@ -270,8 +272,6 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     start_dns = time.time()
     targets = port_scan(rqueue)
     print("{}[PortScan] PortScan Over, time: {}{}".format(yellow, time.time() - start_dns, end))
-    dns_pool.close()
-    dns_pool.join()
 
     time.sleep(1)
     print("{}[TiltleScan] Start ScanProcess......{}".format(blue, end))

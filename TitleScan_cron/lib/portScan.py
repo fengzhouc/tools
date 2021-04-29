@@ -4,7 +4,7 @@ import _queue
 import multiprocessing
 from scapy.all import *
 from scapy.layers.inet import IP, ICMP, TCP
-from lib.config import processes, ports, yellow, end, red
+from lib.config import processes, ports, yellow, end, red, blue
 
 
 # 主逻辑
@@ -24,6 +24,14 @@ def main(port, scan_ip=None, pqueue=None):
         pass
 
 
+# 进度
+def schedule(queue):
+    total = queue.qsize()
+    while not queue.empty():
+        print("{}[Schedule] {}/{} | {:.0%}{}".format(blue, total - queue.qsize(), total,
+                                                     (total - queue.qsize()) / total, end), end="\r")
+
+
 # 入口
 def port_scan(rqueue=None):
     """
@@ -35,6 +43,8 @@ def port_scan(rqueue=None):
     _pool = multiprocessing.Pool(processes=processes)
     result = []  # [{dm:[ip:port,dm:port]}]
     dm = ""  # 域名
+    # 端口扫描的进度条线程
+    threading.Thread(target=schedule, args=(rqueue,)).start()
     while True:
         try:
             queue_ip = rqueue.get_nowait()
