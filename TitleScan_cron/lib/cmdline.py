@@ -11,7 +11,7 @@ import sys
 def parse_args():
     parser = argparse.ArgumentParser(usage='python TitleScan.py -f [domain/ip filename]')
 
-    parser.add_argument("-f", help="Load new line delimited targets from domainFile")
+    parser.add_argument("-f", help="Load new line delimited targets from file(domain/ip)")
 
     parser.add_argument("-p", help="multiprocessing pool size, default:os.cpu_count()")
 
