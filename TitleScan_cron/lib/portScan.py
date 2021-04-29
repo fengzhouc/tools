@@ -43,21 +43,23 @@ def port_scan(rqueue=None):
     _pool = multiprocessing.Pool(processes=processes)
     result = []  # [{dm:[ip:port,dm:port]}]
     dm = ""  # 域名
+    total = rqueue.qsize()
     # 端口扫描的进度条线程
-    threading.Thread(target=schedule, args=(rqueue,)).start()
+    # threading.Thread(target=schedule, args=(rqueue,)).start()
     while True:
         try:
             queue_ip = rqueue.get_nowait()
             dm = list(queue_ip.keys())[0]  # domain
             ips = list(queue_ip.values())[0]  # 对应域名的所有ip
             ipps = []  # 域名/ip组合端口的所有数据
-            for ip in ips:
+            for index, ip in enumerate(ips):
                 # ip = ip.strip()
                 if len(ip_re.findall(ip)) > 0:
                     # 这里因为dnsquery在查询不到的时候,返回域名,所以这里相应的处理,直接添加
                     ipps.append(ip)
                     continue
-                print('{}[PortScan] Start scan {}{}'.format(yellow, ip, end))
+                print('{}[PortScan] Start scan {}, #dm:{}/{}, ip:{}/{}{}'.format(yellow, ip, total-rqueue.qsize(), total,
+                                                                                index+1, len(ips), end))
                 packet_ping = IP(dst=ip) / ICMP()  # 在扫描端口之前先用 ICMP 协议探测一下主机是否存活
                 ping = sr1(packet_ping, timeout=2, verbose=0)
                 if ping is not None:
