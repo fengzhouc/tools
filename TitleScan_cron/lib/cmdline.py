@@ -6,13 +6,10 @@
 
 import argparse
 import sys
-import os
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(usage='SubDomainSiteScan.py -f [domain filename]')
-
-    # parser.add_argument("-h", help="help")
+    parser = argparse.ArgumentParser(usage='python TitleScan.py -f [domain/ip filename]')
 
     parser.add_argument("-f", help="Load new line delimited targets from domainFile")
 
