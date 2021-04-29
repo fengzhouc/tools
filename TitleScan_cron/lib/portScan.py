@@ -58,7 +58,7 @@ def port_scan(rqueue=None):
                     # 这里因为dnsquery在查询不到的时候,返回域名,所以这里相应的处理,直接添加
                     ipps.append(ip)
                     continue
-                print('{}[PortScan] Start scan {}, #dm:{}/{}, ip:{}/{}{}'.format(yellow, ip, total-rqueue.qsize(), total,
+                print("{}[PortScan] Start scan {}/{}, #dm:{}/{}, ip:{}/{}{}".format(yellow, dm, ip, total-rqueue.qsize(), total,
                                                                                 index+1, len(ips), end))
                 packet_ping = IP(dst=ip) / ICMP()  # 在扫描端口之前先用 ICMP 协议探测一下主机是否存活
                 ping = sr1(packet_ping, timeout=2, verbose=0)
@@ -78,7 +78,7 @@ def port_scan(rqueue=None):
                         except _queue.Empty:  # on python 2 use Queue.Empty
                             break
                 elif ping is None:
-                    print("{}[PortScan] {} unable to connect (ping).{}".format(red, ip, end))
+                    print("{}[PortScan] {}/{} unable to connect (ping).{}".format(red, dm, ip, end))
             result.append({dm: ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break
