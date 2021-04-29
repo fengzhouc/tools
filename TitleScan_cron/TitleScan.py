@@ -264,7 +264,7 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     print("{}[DnsQuery] DnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
 
     time.sleep(1)
-    # TODO 端口扫描，返回端口跟域名/ip组合的列表
+    # 端口扫描，返回端口跟域名/ip组合的列表
     # 预期返回: [{dm:[ip:port,dm:port]}]
     print("{}[PortScan] Start portScan......{}".format(yellow, end))
     start_dns = time.time()
@@ -277,6 +277,7 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     print("{}[TiltleScan] Start ScanProcess......{}".format(blue, end))
     # 处理队列中结果的线程
     threading.Thread(target=getresult).start()
+    # titlescan
     async with Pool(processes=_pool) as pool:
         result = await pool.map(
             functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results, e_results)),
