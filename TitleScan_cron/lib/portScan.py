@@ -66,7 +66,7 @@ def port_scan(rqueue=None):
                         except _queue.Empty:  # on python 2 use Queue.Empty
                             break
                 elif ping is None:
-                    print("{}[PortScan] {}无法ping通{}".format(red, ip, end))
+                    print("{}[PortScan] {} unable to connect (ping).{}".format(red, ip, end))
             result.append({dm: ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break
