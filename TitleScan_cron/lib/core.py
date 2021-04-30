@@ -30,7 +30,7 @@ async def getStatusAndTitle(domain, target, index=False, https=False, redirect=F
     }
     try:
         # 获取请求响应
-        # [winerror 10054] 远程主机强迫关闭了一个现有的连接, 一般是连接太久了,服务器端断开了连接,所以这里删除了conn_timeout参数
+        # [winerror 10054] 远程主机强迫关闭了一个现有的连接, 一般是连接太久了,服务器端断开了连接,所以这里删除了conn_timeout参数(建立连接的超时时间(可选),0或None则禁用超时检测)
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
             # print("utl: ", _url)
             async with session.get(_url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
