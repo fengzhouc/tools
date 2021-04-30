@@ -10,7 +10,7 @@ from aiomultiprocess import Pool
 from lib.cmdline import parse_args
 from lib.core import getStatusAndTitle
 
-from lib.config import yellow, green, red, blue, end
+from lib.config import yellow, green, red, blue, end, processes
 from lib.dnsQuery import dns_query
 from lib.portScan import port_scan
 
@@ -249,7 +249,7 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     argv = parse_args()
     args_file = argv.f
     # 默认根据cpu数量
-    _pool = None
+    _pool = processes
     if argv.p:
         _pool = int(argv.p)
     # 读取所有域名，并去重

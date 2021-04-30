@@ -3,12 +3,6 @@ import os
 
 # 进程数，默认cpu_count()就好
 processes = os.cpu_count()
-# 每个进程中运行的协程数，这个数量不要太大，以免出现大量连接失败误报
-# 这个是控制同时爆破url的数量，数量等于childconcurrency * processes
-childconcurrency = 1
-# 每个url爆破的协程数，这个数量不要太大，以免出现大量连接失败误报
-# 这个控制爆破速度，如果总的url少，可以设大一点，默认为10
-crons = 40
 
 # DNS解析设置
 resolver_nameservers = [
