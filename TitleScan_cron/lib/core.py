@@ -31,7 +31,7 @@ async def getStatusAndTitle(domain, target, index=False, https=False, redirect=F
     try:
         # 获取请求响应
         # [winerror 10054] 远程主机强迫关闭了一个现有的连接, 一般是连接太久了,服务器端断开了连接,所以这里删除了conn_timeout参数(建立连接的超时时间(可选),0或None则禁用超时检测)
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False), conn_timeout=10) as session:
             # print("utl: ", _url)
             async with session.get(_url, allow_redirects=redirect, headers=headers, timeout=5) as resp:
                 # 正则匹配获取当前请求url的主页url
@@ -52,18 +52,18 @@ async def getStatusAndTitle(domain, target, index=False, https=False, redirect=F
         # 连接失败的时候，信息设置为None
         result["index_url"] = _url
         result["Location"] = None
-        result["status"] = "Connect Fail"
-        result["title"] = ""
-        result["contenthash"] = None
-    except ConnectionResetError as e:
-        # 连接重置,可能还是个站点，但出现了某种去情况，手工试试
-        result["index_url"] = _url
-        result["Location"] = None
-        result["status"] = "Connect Reset"
-        result["title"] = "Try it by hand"
+        result["status"] = ""
+        result["title"] = str(e)
         result["contenthash"] = None
     except UnicodeDecodeError as e:
         # 编码不一致的情况，或者响应不是文本，而是二进制流
+        result["contenthash"] = None
+    except Exception as e:
+        # 连接重置,可能还是个站点，但出现了某种去情况，手工试试
+        result["index_url"] = _url
+        result["Location"] = None
+        result["status"] = "Try it by hand"
+        result["title"] = str(e)
         result["contenthash"] = None
     finally:
         pass
