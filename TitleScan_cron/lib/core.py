@@ -53,7 +53,7 @@ async def getStatusAndTitle(domain, target, index=False, https=False, redirect=F
         # 连接失败的时候，信息设置为None
         result["index_url"] = _url
         result["Location"] = None
-        result["status"] = ""
+        result["status"] = None
         result["title"] = str(e)
         result["contenthash"] = None
     except UnicodeDecodeError as e:
@@ -64,7 +64,7 @@ async def getStatusAndTitle(domain, target, index=False, https=False, redirect=F
         # winerror 10054 连接重置,可能还是个站点，但出现了某种去情况，手动试试
         result["index_url"] = _url
         result["Location"] = None
-        result["status"] = "Try it by hand"
+        result["status"] = None
         result["title"] = str(e)
         result["contenthash"] = None
     finally:

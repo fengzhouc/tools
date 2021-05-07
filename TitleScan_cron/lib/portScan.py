@@ -4,7 +4,7 @@ import _queue
 import multiprocessing
 from scapy.all import *
 from scapy.layers.inet import IP, ICMP, TCP
-from lib.config import processes, ports, yellow, end, red, blue
+from lib.config import port_processes, ports, yellow, end, red, blue
 
 
 # 主逻辑
@@ -40,7 +40,7 @@ def port_scan(rqueue=None):
     :return:  [{dm:[ip:port,dm:port]}]
     """
     ip_re = re.compile('[A-Za-z]', re.S)  # 判断是否非ip
-    _pool = multiprocessing.Pool(processes=processes)
+    _pool = multiprocessing.Pool(processes=port_processes)
     result = []  # [{dm:[ip:port,dm:port]}]
     dm = ""  # 域名
     total = rqueue.qsize()
@@ -60,25 +60,40 @@ def port_scan(rqueue=None):
                     continue
                 print("{}[PortScan] Start scan '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow, dm, ip, total-rqueue.qsize(), total,
                                                                                 index+1, len(ips), end))
-                packet_ping = IP(dst=ip) / ICMP()  # 在扫描端口之前先用 ICMP 协议探测一下主机是否存活
-                ping = sr1(packet_ping, timeout=2, verbose=0)
-                if ping is not None:
-                    pqueue = multiprocessing.Manager().Queue()
-                    _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
-                    # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
-                    while True:
-                        try:
-                            port = pqueue.get_nowait()
-                            ipp = "{}:{}".format(ip, port)
-                            dmp = "{}:{}".format(dm, port)
-                            if ipp not in ipps:
-                                ipps.append(ipp)
-                            if dmp not in ipps:
-                                ipps.append(dmp)
-                        except _queue.Empty:  # on python 2 use Queue.Empty
-                            break
-                elif ping is None:
-                    print("{}[PortScan] '{}/{}' unable to connect (ping).{}".format(red, dm, ip, end))
+                pqueue = multiprocessing.Manager().Queue()
+                _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
+                # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
+                while True:
+                    try:
+                        port = pqueue.get_nowait()
+                        ipp = "{}:{}".format(ip, port)
+                        dmp = "{}:{}".format(dm, port)
+                        if ipp not in ipps:
+                            ipps.append(ipp)
+                        if dmp not in ipps:
+                            ipps.append(dmp)
+                    except _queue.Empty:  # on python 2 use Queue.Empty
+                        break
+                # 不探活了,有失误
+                # packet_ping = IP(dst=ip) / ICMP()  # 在扫描端口之前先用 ICMP 协议探测一下主机是否存活
+                # ping = sr1(packet_ping, timeout=2, verbose=0)
+                # if ping is not None:
+                #     pqueue = multiprocessing.Manager().Queue()
+                #     _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
+                #     # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
+                #     while True:
+                #         try:
+                #             port = pqueue.get_nowait()
+                #             ipp = "{}:{}".format(ip, port)
+                #             dmp = "{}:{}".format(dm, port)
+                #             if ipp not in ipps:
+                #                 ipps.append(ipp)
+                #             if dmp not in ipps:
+                #                 ipps.append(dmp)
+                #         except _queue.Empty:  # on python 2 use Queue.Empty
+                #             break
+                # elif ping is None:
+                #     print("{}[PortScan] '{}/{}' unable to connect (ping).{}".format(red, dm, ip, end))
             result.append({dm: ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break

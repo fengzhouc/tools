@@ -1,8 +1,10 @@
 # encoding=utf-8
 import os
 
-# 进程数，默认cpu_count()就好
+# titlescan进程数,默认cpu_count()就好
 processes = os.cpu_count()
+# portScan进程数
+port_processes = 50
 
 # DNS解析设置
 resolver_nameservers = [
