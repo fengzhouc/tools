@@ -40,5 +40,5 @@ def dns_query(qname, qtype="A", rqueue=None):
 
 
 if __name__ == "__main__":
-    answer = dns_query("kk.cvte.com")
+    answer = dns_query("www.baidu.com")
     print(answer)
