@@ -106,13 +106,15 @@ async def scan_process(target, result_queue=None):
         elif str(_mess.get("status")).startswith("30"):
             i_mess = await getStatusAndTitle(domain, dm, index=True, redirect=True, https=_https)
             # 这里可能会出现协议转换的302,跟进302,看是否访问正常，确定是协议转换则抛弃
-            if _mess.get("index_url").split("://")[0] == i_mess.get("index_url").split("://")[0]:
+            if _mess.get("index_url").split("://")[0] != i_mess.get("index_url").split("://")[0]:
                 pass
+            elif i_mess.get("status") in [200, ]:
+                a_results.put(i_mess.values())
             elif i_mess.get("status") in [404, ]:
                 c_results.put(i_mess.values())
             elif i_mess.get("status") in [401, 407, 415]:
                 b_results.put(i_mess.values())
-            elif (_mess.get("status") is None) or (_mess.get("status") in [501, 502, 503, 504]):
+            elif (i_mess.get("status") is None) or (i_mess.get("status") in [501, 502, 503, 504]):
                 d_results.put(_mess.values())
             # 预料之外的情况，需要关注，以完善工具
             else:
