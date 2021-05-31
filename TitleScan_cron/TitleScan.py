@@ -108,7 +108,7 @@ async def scan_process(target, result_queue=None):
             # 这里可能会出现协议转换的302,跟进302,看是否访问正常，确定是协议转换则抛弃
             if _mess.get("index_url").split("://")[0] != i_mess.get("index_url").split("://")[0]:
                 pass
-            elif i_mess.get("status") in [200, ]:
+            elif i_mess.get("status") in [200, 302]:
                 a_results.put(i_mess.values())
             elif i_mess.get("status") in [404, ]:
                 c_results.put(i_mess.values())
@@ -267,26 +267,26 @@ async def main(a_results, b_results, c_results, d_results, e_results):
         _pool = int(argv.p)
     # 读取所有域名，并去重
     dm_list = list(set(open(args_file).readlines()))
-    # 查询每个域名的ip
-    print("{}[DnsQuery] Start dnsQuery......{}".format(blue, end))
-    # rqueue是结果队列, {dm: [ip]}
-    rqueue = multiprocessing.Manager().Queue()
-    start_dns = time.time()
-    dns_pool = multiprocessing.Pool(processes=_pool)
-    dns_pool.map(functools.partial(dns_query, rqueue=rqueue), dm_list)
-    dns_pool.close()
-    dns_pool.join()
-    print("{}[DnsQuery] DnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
+    # # 查询每个域名的ip
+    # print("{}[DnsQuery] Start dnsQuery......{}".format(blue, end))
+    # # rqueue是结果队列, {dm: [ip]}
+    # rqueue = multiprocessing.Manager().Queue()
+    # start_dns = time.time()
+    # dns_pool = multiprocessing.Pool(processes=_pool)
+    # dns_pool.map(functools.partial(dns_query, rqueue=rqueue), dm_list)
+    # dns_pool.close()
+    # dns_pool.join()
+    # print("{}[DnsQuery] DnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
+    #
+    # time.sleep(1)
+    # # 端口扫描，返回端口跟域名/ip组合的列表
+    # # 预期返回: [{dm:[ip:port,dm:port]}]
+    # print("{}[PortScan] Start portScan......{}".format(blue, end))
+    # start_dns = time.time()
+    # targets = port_scan(rqueue)
+    # print("{}[PortScan] PortScan Over, time: {}{}".format(blue, time.time() - start_dns, end))
 
-    time.sleep(1)
-    # 端口扫描，返回端口跟域名/ip组合的列表
-    # 预期返回: [{dm:[ip:port,dm:port]}]
-    print("{}[PortScan] Start portScan......{}".format(blue, end))
-    start_dns = time.time()
-    targets = port_scan(rqueue)
-    print("{}[PortScan] PortScan Over, time: {}{}".format(blue, time.time() - start_dns, end))
-
-    # targets = [{dm.strip(): [dm.strip(), ]} for dm in dm_list]
+    targets = [{dm.strip(): [dm.strip(), ]} for dm in dm_list]
     time.sleep(1)
     print("{}[TiltleScan] Start ScanProcess......{}".format(blue, end))
     # 处理队列中结果的线程
