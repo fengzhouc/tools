@@ -1,7 +1,7 @@
 # encoding=utf-8
 
 from dns.resolver import Resolver
-from lib.config import resolver_nameservers, resolver_timeout, resolver_lifetime, blue, end, red
+from lib.config import resolver_nameservers, resolver_timeout, resolver_lifetime, blue, end, red, yellow
 
 def dns_resolver():
     """
@@ -30,7 +30,7 @@ def dns_query(qname, qtype="A", rqueue=None):
         answer_list = []
         for aw in answer:
             answer_list.append(str(aw))
-        print("{}[DnsQuery] '{}' record of {}, answer: {}{}".format(blue, qname, qtype, answer_list, end))
+        print("{}[DnsQuery] '{}' record of {}, answer: {}{}".format(yellow, qname, qtype, answer_list, end))
         result[qname] = answer_list
     except Exception as e:
         print("{}[DnsQuery] Query '{}' record of {} failed{}".format(red, qname, qtype, end))
