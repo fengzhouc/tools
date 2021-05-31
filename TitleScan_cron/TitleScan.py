@@ -115,7 +115,7 @@ async def scan_process(target, result_queue=None):
             elif i_mess.get("status") in [401, 407, 415]:
                 b_results.put(i_mess.values())
             elif (i_mess.get("status") is None) or (i_mess.get("status") in [501, 502, 503, 504]):
-                d_results.put(_mess.values())
+                d_results.put(i_mess.values())
             # 预料之外的情况，需要关注，以完善工具
             else:
                 e_results.put(_mess.values())
