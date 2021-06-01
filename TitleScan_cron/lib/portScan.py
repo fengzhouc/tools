@@ -65,7 +65,7 @@ def port_scan(rqueue=None):
                     ipps.append(ip)
                     continue
                 print("{}[PortScan] Start scan '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow, dm, ip, total-rqueue.qsize(), total,
-                                                                                index+1, len(ips), end), end="\r")
+                                                                                index+1, len(ips), end))
                 pqueue = multiprocessing.Manager().Queue()
                 _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
