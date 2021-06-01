@@ -14,7 +14,7 @@ def main(port, scan_ip=None, pqueue=None):
         send = sr1(packet, timeout=2, verbose=0)
         if send.haslayer('TCP'):
             if send['TCP'].flags == 'SA':   # 判断目标主机是否返回 SYN+ACK
-                # send_1 = sr1(IP(dst=scan_ip)/TCP(dport=port, flags='R'), timeout=2, verbose=0)  # 只向目标主机发送 RST
+                send_1 = sr1(IP(dst=scan_ip)/TCP(dport=port, flags='R'), timeout=2, verbose=0)  # 只向目标主机发送 RST
                 # print('{}[PortScan] [+] {} is open{}'.format(yellow, port, end))
                 pqueue.put(port)
             elif send['TCP'].flags == 'RA':
