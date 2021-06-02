@@ -267,6 +267,7 @@ async def main(a_results, b_results, c_results, d_results, e_results):
         _pool = int(argv.p)
     # 读取所有域名，并去重
     dm_list = list(set(open(args_file).readlines()))
+    print("{}[TitleScan] all domain total: {}{}".format(blue, len(dm_list), end))
     # 查询每个域名的ip
     print("{}[DnsQuery] Start dnsQuery......{}".format(blue, end))
     # rqueue是结果队列, {dm: [ip]}
