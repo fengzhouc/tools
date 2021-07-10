@@ -15,7 +15,7 @@ def main(port, scan_ip=None, pqueue=None):
         if send.haslayer('TCP'):
             if send['TCP'].flags == 'SA':   # 判断目标主机是否返回 SYN+ACK
                 send_1 = sr1(IP(dst=scan_ip)/TCP(dport=port, flags='R'), timeout=2, verbose=0)  # 只向目标主机发送 RST
-                print('{}[PortScan] [+] {} is open{}'.format(yellow, port, end))
+                # print('{}[PortScan] [+] {} is open{}'.format(yellow, port, end))
                 pqueue.put(port)
             elif send['TCP'].flags == 'RA':
                 # 端口未开放
@@ -28,13 +28,12 @@ def main(port, scan_ip=None, pqueue=None):
 # 思路
 # 1、先一次将多有端口探测的包发出去,记录状态(0,未发送  1,已发送  2,已回复  3,丢弃)
 # 2、一定时间检查一下状态表是都有响应,如果send_time超过一定时间，则重发，可能丢包了(只重发1次)
-# 3、
 
 # 进度
 def schedule(queue):
     total = queue.qsize()
     while not queue.empty():
-        print("{}[Schedule] {}/{} | {:.0%}{}".format(blue, total - queue.qsize(), total,
+        print("{}[Schedule] {}/{} | {:.0%}{}".format(yellow, total - queue.qsize(), total,
                                                      (total - queue.qsize()) / total, end), end="\r")
 
 
@@ -51,7 +50,7 @@ def port_scan(rqueue=None):
     dm = ""  # 域名
     total = rqueue.qsize()
     # 端口扫描的进度条线程
-    # threading.Thread(target=schedule, args=(rqueue,)).start()
+    threading.Thread(target=schedule, args=(rqueue,)).start()
     while True:
         try:
             queue_ip = rqueue.get_nowait()
@@ -64,8 +63,7 @@ def port_scan(rqueue=None):
                     # 这里因为dnsquery在查询不到的时候,返回域名,所以这里相应的处理,直接添加
                     ipps.append(ip)
                     continue
-                print("{}[PortScan] Start scan '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow, dm, ip, total-rqueue.qsize(), total,
-                                                                                index+1, len(ips), end))
+                # print("{}[PortScan] Start scan '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow, dm, ip, total-rqueue.qsize(), total, index+1, len(ips), end))
                 pqueue = multiprocessing.Manager().Queue()
                 _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}

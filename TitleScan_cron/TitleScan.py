@@ -31,7 +31,7 @@ async def scan_process(target, result_queue=None):
     :return:
     """
     # 不同分类的结果队列
-    a_results, b_results, c_results, d_results, e_results = result_queue
+    all_results, a_results, b_results, c_results, d_results, e_results = result_queue
     domain = list(target.keys())[0]  # 域名
     ips = list(target.values())[0]  # 域名/ip组合端口的所有数据
     # 扫描列表，主要是http/https两种协议
@@ -76,6 +76,7 @@ async def scan_process(target, result_queue=None):
         # 这里不会有http 400的情况，上面做了过滤，如果http 400 ，则target_dict中只有https
         if _mess.get("status") == 400 and _https:
             c_results.put(_mess.values())
+            all_results.put(_mess.values())
             continue
 
         # 不存在目录请求状态码200，进行分支访问主页继续判断
@@ -88,11 +89,13 @@ async def scan_process(target, result_queue=None):
             # 如果包含关键字，则是状态码为200的错误页面，这种情况错误处理是自定义的，基本可以判断是正常网站，直接存入A类
             if _is404:
                 a_results.put(_mess.values())
+                all_results.put(_mess.values())  # 添加到汇总队列
             # 如果不包含，则需要进一步确认主页
             else:
                 # _checkcentent=True, 不存在目录跟主页状态码都在200的情况下进行相似度比较
                 r, index_mess = await getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results,
                                                    d_results, e_results, _checkcentent=True)
+                all_results.put(index_mess.values())  # 添加到汇总队列
                 # 主页如果属于D类，即状态码501/502/503/504/请求失败，则重新请求请求再确认一次
                 if r is d_results:
                     # 以第二次访问的结果为准保存
@@ -105,6 +108,7 @@ async def scan_process(target, result_queue=None):
         # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
             i_mess = await getStatusAndTitle(domain, dm, index=True, redirect=True, https=_https)
+            all_results.put(i_mess.values())  # 添加到汇总队列
             # 这里可能会出现协议转换的302,跟进302,看是否访问正常，确定是协议转换则抛弃
             if _mess.get("index_url").split("://")[0] != i_mess.get("index_url").split("://")[0]:
                 pass
@@ -122,6 +126,7 @@ async def scan_process(target, result_queue=None):
         # 不存在目录请求状态码404，进行分支访问主页继续判断
         elif _mess.get("status") == 404:
             r, index_mess = await getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results, d_results, e_results)
+            all_results.put(index_mess.values())  # 添加到汇总队列
             # 如果是D类，则重新请求再确认一次
             if r is d_results:
                 # 以第二次访问的结果为准保存
@@ -135,15 +140,19 @@ async def scan_process(target, result_queue=None):
         # 不存在目录请求状态码是否401,407,415，都是需要认证的,大概率正常网站，因为做了认证
         elif _mess.get("status") in [401, 407, 415]:
             b_results.put(_mess.values())
+            all_results.put(_mess.values())  # 添加到汇总队列
         # 不存在目录请求状态码403，500，小概率正常网站
         elif _mess.get("status") in [403, 500]:
             c_results.put(_mess.values())
+            all_results.put(_mess.values())  # 添加到汇总队列
         # 不存在目录请求状态码是否501，502，503，504及没有，不存在目录返回这些状态码，说明不是正常网站
         elif (_mess.get("status") is None) or (_mess.get("status") in [501, 502, 503, 504]):
             d_results.put(_mess.values())
+            all_results.put(_mess.values())  # 添加到汇总队列
         # 预料之外的情况，需要关注，以完善工具
         else:
             e_results.put(_mess.values())
+            all_results.put(_mess.values())  # 添加到汇总队列
 
 
 async def getindexmess(domain, dm, mess404, _https, a_results, b_results, c_results, d_results, e_results, _checkcentent=False):
@@ -192,8 +201,12 @@ def getresult():
     从队列中获取结果写到excel
     :return:
     """
+    # TODO 做一个汇总页
     wb = xlwt.Workbook()
     column_keys = ['target_domain', 'original_domain', 'index_url', "Location", 'status', 'title', 'contenthash']
+    all = wb.add_sheet("汇总")
+    for column, m in enumerate(column_keys):
+        all.write(0, column, m)
     a = wb.add_sheet("A类 正常网站（重点关注）")
     for column, m in enumerate(column_keys):
         a.write(0, column, m)
@@ -213,12 +226,14 @@ def getresult():
     report_filename = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
     global STOP_ME
+    global all_results
     global a_results
     global b_results
     global c_results
     global d_results
     global e_results
     # 报告行数记录
+    allline = 0
     aline = 0
     bline = 0
     cline = 0
@@ -228,6 +243,8 @@ def getresult():
         print("{}[Schedule] A:{} B:{} C:{} D:{} E:{} ,total:{} {}".format(yellow, aline, bline, cline, dline, eline,
                                                                           aline + bline + cline + dline + eline, end),
               end="\r")
+        if all_results.qsize() > 0:
+            allline = writerdata(all, all_results.get(), allline)
         if a_results.qsize() > 0:
             aline = writerdata(a, a_results.get(), aline)
         if b_results.qsize() > 0:
@@ -257,7 +274,7 @@ def writerdata(worksheet, message, row):
     return row
 
 
-async def main(a_results, b_results, c_results, d_results, e_results):
+async def main(all_results, a_results, b_results, c_results, d_results, e_results):
     # 命令行获取domain file
     argv = parse_args()
     args_file = argv.f
@@ -295,7 +312,7 @@ async def main(a_results, b_results, c_results, d_results, e_results):
     # titlescan
     async with Pool(processes=_pool) as pool:
         result = await pool.map(
-            functools.partial(scan_process, result_queue=(a_results, b_results, c_results, d_results, e_results)),
+            functools.partial(scan_process, result_queue=(all_results, a_results, b_results, c_results, d_results, e_results)),
             targets)
 
 
@@ -303,6 +320,7 @@ if __name__ == "__main__":
 
     STOP_ME = False
     try:
+        all_results = multiprocessing.Manager().Queue()
         a_results = multiprocessing.Manager().Queue()
         b_results = multiprocessing.Manager().Queue()
         c_results = multiprocessing.Manager().Queue()
@@ -310,7 +328,7 @@ if __name__ == "__main__":
         e_results = multiprocessing.Manager().Queue()
 
         start = time.time()
-        task = asyncio.ensure_future(main(a_results, b_results, c_results, d_results, e_results))
+        task = asyncio.ensure_future(main(all_results, a_results, b_results, c_results, d_results, e_results))
         loop = asyncio.get_event_loop()
         loop.run_until_complete(task)
 
