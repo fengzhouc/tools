@@ -299,10 +299,7 @@ async def main(all_results, a_results, b_results, c_results, d_results, e_result
     time.sleep(1)
     # 端口扫描，返回端口跟域名/ip组合的列表
     # 预期返回: [{dm:[ip:port,dm:port]}]
-    print("{}[PortScan] Start portScan......{}".format(blue, end))
-    start_dns = time.time()
     targets = port_scan(rqueue)
-    print("{}[PortScan] PortScan Over, time: {}{}".format(blue, time.time() - start_dns, end))
 
     # targets = [{dm.strip(): [dm.strip(), ]} for dm in dm_list]
     time.sleep(1)
@@ -319,6 +316,7 @@ async def main(all_results, a_results, b_results, c_results, d_results, e_result
 if __name__ == "__main__":
 
     STOP_ME = False
+    start = time.time()
     try:
         all_results = multiprocessing.Manager().Queue()
         a_results = multiprocessing.Manager().Queue()
@@ -327,7 +325,6 @@ if __name__ == "__main__":
         d_results = multiprocessing.Manager().Queue()
         e_results = multiprocessing.Manager().Queue()
 
-        start = time.time()
         task = asyncio.ensure_future(main(all_results, a_results, b_results, c_results, d_results, e_results))
         loop = asyncio.get_event_loop()
         loop.run_until_complete(task)
@@ -339,4 +336,4 @@ if __name__ == "__main__":
         print('\n{}[__main__.exception] {} {}{}'.format(red, type(e), str(e), end))
     finally:
         STOP_ME = True
-        print("\n{}all done, times:{}{}".format(green, time.time() - start, end))
+        print("\n{}All done, times:{}{}".format(green, time.time() - start, end))

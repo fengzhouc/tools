@@ -50,7 +50,9 @@ def port_scan(rqueue=None):
     dm = ""  # 域名
     total = rqueue.qsize()
     # 端口扫描的进度条线程
-    threading.Thread(target=schedule, args=(rqueue,)).start()
+    # threading.Thread(target=schedule, args=(rqueue,)).start()
+    print("{}[PortScan] Start portScan......{}".format(blue, end))
+    start_dns = time.time()
     while True:
         try:
             queue_ip = rqueue.get_nowait()
@@ -63,7 +65,11 @@ def port_scan(rqueue=None):
                     # 这里因为dnsquery在查询不到的时候,返回域名,所以这里相应的处理,直接添加
                     ipps.append(ip)
                     continue
-                # print("{}[PortScan] Start scan '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow, dm, ip, total-rqueue.qsize(), total, index+1, len(ips), end))
+                print("{}[PortScan] {:.0%} | '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow,
+                                                                            (total - rqueue.qsize()) / total, dm, ip,
+                                                                            total-rqueue.qsize(), total,
+                                                                            index+1, len(ips),
+                                                                            end))
                 pqueue = multiprocessing.Manager().Queue()
                 _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
@@ -103,6 +109,7 @@ def port_scan(rqueue=None):
             break
     _pool.close()
     _pool.join()
+    print("{}[PortScan] PortScan Over, time: {}{}".format(blue, time.time() - start_dns, end))
     return result
 
 
