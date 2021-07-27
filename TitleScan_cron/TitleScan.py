@@ -287,7 +287,7 @@ async def main(all_results, a_results, b_results, c_results, d_results, e_result
     print("{}[TitleScan] all domain total: {}{}".format(blue, len(dm_list), end))
     # 查询每个域名的ip
     print("{}[DnsQuery] Start dnsQuery......{}".format(blue, end))
-    # rqueue是结果队列, {dm: [ip]}
+    # rqueue是结果队列, {dm: [ip,ip1,ip2], dm1: [ip,ip1,ip2]}
     rqueue = multiprocessing.Manager().Queue()
     start_dns = time.time()
     dns_pool = multiprocessing.Pool(processes=_pool)

@@ -2,19 +2,27 @@
 
 import _queue
 import multiprocessing
+
 from scapy.all import *
-from scapy.layers.inet import IP, ICMP, TCP
+from scapy.layers.inet import IP, TCP
 from lib.config import port_processes, ports, yellow, end, red, blue
+
+from gevent import monkey
+# gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
+monkey.patch_all()
+
+import gevent
 
 
 # 主逻辑
 def main(port, scan_ip=None, pqueue=None):
+    print(scan_ip, port, sep=":")
     try:
-        packet = IP(dst=scan_ip)/TCP(dport=port, flags='S')  # 构造一个 flags 的值为 S 的报文
+        packet = IP(dst=scan_ip) / TCP(dport=port, flags='S')  # 构造一个 flags 的值为 S 的报文
         send = sr1(packet, timeout=2, verbose=0)
         if send.haslayer('TCP'):
-            if send['TCP'].flags == 'SA':   # 判断目标主机是否返回 SYN+ACK
-                send_1 = sr1(IP(dst=scan_ip)/TCP(dport=port, flags='R'), timeout=2, verbose=0)  # 只向目标主机发送 RST
+            if send['TCP'].flags == 'SA':  # 判断目标主机是否返回 SYN+ACK
+                send_1 = sr1(IP(dst=scan_ip) / TCP(dport=port, flags='R'), timeout=2, verbose=0)  # 只向目标主机发送 RST
                 # print('{}[PortScan] [+] {} is open{}'.format(yellow, port, end))
                 pqueue.put(port)
             elif send['TCP'].flags == 'RA':
@@ -22,6 +30,8 @@ def main(port, scan_ip=None, pqueue=None):
                 pass
     except Exception as e:
         pass
+
+
 # TODO 端口扫描优化
 # 背景：原来的设计性能太差了,参考masscan及zmap,将发包跟收包分开,在控制端口数量
 # 扫描状态表，记录每个端口扫描的情况，{obj,dm,ip,port,send_time,retry,status}
@@ -66,10 +76,11 @@ def port_scan(rqueue=None):
                     ipps.append(ip)
                     continue
                 print("{}[PortScan] {:.0%} | '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow,
-                                                                            (total - rqueue.qsize()) / total, dm, ip,
-                                                                            total-rqueue.qsize(), total,
-                                                                            index+1, len(ips),
-                                                                            end))
+                                                                                    (total - rqueue.qsize()) / total,
+                                                                                    dm, ip,
+                                                                                    total - rqueue.qsize(), total,
+                                                                                    index + 1, len(ips),
+                                                                                    end))
                 pqueue = multiprocessing.Manager().Queue()
                 _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
@@ -84,26 +95,87 @@ def port_scan(rqueue=None):
                             ipps.append(dmp)
                     except _queue.Empty:  # on python 2 use Queue.Empty
                         break
-                # 不探活了,有失误
-                # packet_ping = IP(dst=ip) / ICMP()  # 在扫描端口之前先用 ICMP 协议探测一下主机是否存活
-                # ping = sr1(packet_ping, timeout=2, verbose=0)
-                # if ping is not None:
-                #     pqueue = multiprocessing.Manager().Queue()
-                #     _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
-                #     # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
-                #     while True:
-                #         try:
-                #             port = pqueue.get_nowait()
-                #             ipp = "{}:{}".format(ip, port)
-                #             dmp = "{}:{}".format(dm, port)
-                #             if ipp not in ipps:
-                #                 ipps.append(ipp)
-                #             if dmp not in ipps:
-                #                 ipps.append(dmp)
-                #         except _queue.Empty:  # on python 2 use Queue.Empty
-                #             break
-                # elif ping is None:
-                #     print("{}[PortScan] '{}/{}' unable to connect (ping).{}".format(red, dm, ip, end))
+            result.append({dm: ipps})
+        except _queue.Empty:  # on python 2 use Queue.Empty
+            break
+    _pool.close()
+    _pool.join()
+    print("{}[PortScan] PortScan Over, time: {}{}".format(blue, time.time() - start_dns, end))
+    return result
+
+# 主逻辑
+def async_main(port, scan_ip=None, pqueue=None):
+    addr = (scan_ip, port)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # 创建TCP对象
+    sock.settimeout(2)  # 设置超时
+    try:
+        sock.connect(addr)  # 建立完整连接 和telnet相同
+        # print(f'{str(str(addr[0]))} :{str(str(addr[1]))} is open')
+        pqueue.put(port)
+    except:
+        pass
+    finally:
+        sock.close()
+
+
+def async_port_scan(rqueue=None):
+    """
+    :param rqueue:  {dm: [ip,ip1,ip2], dm1: [ip,ip1,ip2]}
+    :return:  [{dm:[ip:port,dm:port]}]
+    """
+    result = []  # [{dm:[ip:port,dm:port]}]
+    # 协程任务池
+    threads = []
+    # for d in rqueue:
+    #     for k, ips in d.items():
+    #         for ip in ips:
+    #             for port in ports:
+    #                 threads.append(gevent.spawn(async_main, port, scan_ip=ip))
+    # gevent.joinall(threads)
+
+    ip_re = re.compile('[A-Za-z]', re.S)  # 判断是否非ip
+    _pool = multiprocessing.Pool(processes=port_processes)
+    result = []  # [{dm:[ip:port,dm:port]}]
+    dm = ""  # 域名
+    total = rqueue.qsize()
+    # 端口扫描的进度条线程
+    # threading.Thread(target=schedule, args=(rqueue,)).start()
+    print("{}[PortScan] Start portScan......{}".format(blue, end))
+    start_dns = time.time()
+    while True:
+        try:
+            queue_ip = rqueue.get_nowait()
+            dm = list(queue_ip.keys())[0]  # domain
+            ips = list(queue_ip.values())[0]  # 对应域名的所有ip
+            ipps = []  # 域名/ip组合端口的所有数据
+            for index, ip in enumerate(ips):
+                # ip = ip.strip()
+                if len(ip_re.findall(ip)) > 0:
+                    # 这里因为dnsquery在查询不到的时候,返回域名,所以这里相应的处理,直接添加
+                    ipps.append(ip)
+                    continue
+                print("{}[PortScan] {:.0%} | '{}/{}', #dm:{}/{}, ip:{}/{}{}".format(yellow,
+                                                                                    (total - rqueue.qsize()) / total,
+                                                                                    dm, ip,
+                                                                                    total - rqueue.qsize(), total,
+                                                                                    index + 1, len(ips),
+                                                                                    end))
+                pqueue = multiprocessing.Manager().Queue()
+                for port in ports:
+                    threads.append(gevent.spawn(main, port, scan_ip=ip, pqueue=pqueue))
+                gevent.joinall(threads)
+                # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
+                while True:
+                    try:
+                        port = pqueue.get_nowait()
+                        ipp = "{}:{}".format(ip, port)
+                        dmp = "{}:{}".format(dm, port)
+                        if ipp not in ipps:
+                            ipps.append(ipp)
+                        if dmp not in ipps:
+                            ipps.append(dmp)
+                    except _queue.Empty:  # on python 2 use Queue.Empty
+                        break
             result.append({dm: ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break
@@ -114,8 +186,11 @@ def port_scan(rqueue=None):
 
 
 if __name__ == '__main__':
-    ip = "121.8.148.87"
+    ip = {"dm": ["121.8.148.87"]}
+    rqueue = multiprocessing.Manager().Queue()
+    rqueue.put(ip)
     start_time = time.time()
-    main(ip)
+    # async_port_scan(rqueue)
+    port_scan(rqueue)
     end_time = time.time()
-    print('[time cost] : ' + str(end_time-start_time))
+    print('[time cost] : ' + str(end_time - start_time))
