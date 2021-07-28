@@ -4,14 +4,18 @@ import socket
 import time
 
 import aiohttp
+import requests
 from aiomultiprocess import Pool
-from lib.config import yellow, green, red, blue, end
 import string
 import random
 import asyncio
 
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+#关闭安全请求警告
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-async def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
+
+async def getStatusAndTitle1(domain, target, index=False, https=False, redirect=False):
     """
     发送请求，获取状态码及title
     :param https: 是否使用https协议发送请求
@@ -86,6 +90,61 @@ def getTitle(resp):
         return title[0]
     return None
 
+def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
+    """
+    发送请求，获取状态码及title
+    :param https: 是否使用https协议发送请求
+    :param redirect: 是否跟进重定向
+    :param domain: 域名
+    :return: dict [target_domain, original_domain, rediect_url, status，title, header_count, content-length]
+    """
+    _url = getUrl(target, index=index, https=https)
+    # 结果保存
+    result = {"target_domain": domain, "original_domain": target, }
+    # print(_url)
+    if not _url:
+        raise ValueError("url is none.")
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/59.0.3071.104 Safari/537.36',
+        'Referer': _url,
+    }
+    try:
+        # 获取请求响应
+        resp = requests.get(_url, headers=headers, verify=False, allow_redirects=redirect, timeout=5)
+        result["index_url"] = _url
+        result["Location"] = resp.headers.get("Location")
+        result["status"] = resp.status_code
+        # 获取title
+        text = resp.text
+        title = getTitle(text)
+        result["title"] = title if title else ""
+        result["contenthash"] = hash(text)
+    # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
+    except RuntimeError as e:
+        # print("{}[EXCEPT] {} {} {}".format(red, _url, "connect error", end))
+        # 连接失败的时候，信息设置为None
+        result["index_url"] = _url
+        result["Location"] = None
+        result["status"] = None
+        result["title"] = str(e)
+        result["contenthash"] = None
+    except UnicodeDecodeError as e:
+        # 编码不一致的情况，或者响应不是文本，而是二进制流
+        result["title"] = str(e)
+        result["contenthash"] = None
+    except socket.error as e:
+        # winerror 10054 连接重置,可能还是个站点，但出现了某种去情况，手动试试
+        result["index_url"] = _url
+        result["Location"] = None
+        result["status"] = None
+        result["title"] = str(e)
+        result["contenthash"] = None
+    finally:
+        pass
+    # print(result)
+    return result
 
 def getUrl(domain, index=False, https=False):
     """
@@ -116,8 +175,9 @@ async def aiomul():
     #     print(i)
 
 if __name__ == "__main__":
-    start = time.time()
-    task = asyncio.ensure_future(aiomul())
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(task)
-    print("all done, {}".format(time.time() - start))
+    # start = time.time()
+    # task = asyncio.ensure_future(aiomul())
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(task)
+    # print("all done, {}".format(time.time() - start))
+    getStatusAndTitle("a", "home.cvte.com")

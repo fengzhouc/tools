@@ -5,7 +5,7 @@ import multiprocessing
 
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
-from config import port_processes, ports, yellow, end, red, blue
+from lib.config import port_processes, ports, yellow, end, red, blue
 
 from gevent import monkey
 # gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
@@ -75,7 +75,7 @@ def port_scan(rqueue=None):
                                                                                     index + 1, len(ips),
                                                                                     end))
                 pqueue = multiprocessing.Manager().Queue()
-                _pool.map(functools.partial(main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
+                _pool.map(functools.partial(async_main, scan_ip=ip, pqueue=pqueue), ports)  # 常见端口
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
                 while True:
                     try:
@@ -124,12 +124,6 @@ def async_port_scan(rqueue=None):
     result = []  # [{dm:[ip:port,dm:port]}]
     # 协程任务池
     threads = []
-    # for d in rqueue:
-    #     for k, ips in d.items():
-    #         for ip in ips:
-    #             for port in ports:
-    #                 threads.append(gevent.spawn(async_main, port, scan_ip=ip))
-    # gevent.joinall(threads)
 
     ip_re = re.compile('[A-Za-z]', re.S)  # 判断是否非ip
     result = []  # [{dm:[ip:port,dm:port]}]
@@ -159,7 +153,7 @@ def async_port_scan(rqueue=None):
                                                                                     end))
                 pqueue = multiprocessing.Manager().Queue()
                 for port in ports:
-                    threads.append(gevent.spawn(main, port, scan_ip=ip, pqueue=pqueue))
+                    threads.append(gevent.spawn(async_main, port, scan_ip=ip, pqueue=pqueue))
                 gevent.joinall(threads)
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
                 while True:
