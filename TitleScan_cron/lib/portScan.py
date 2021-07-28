@@ -5,11 +5,11 @@ import multiprocessing
 
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
-from lib.config import port_processes, ports, yellow, end, red, blue
+from config import port_processes, ports, yellow, end, red, blue
 
 from gevent import monkey
 # gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
-monkey.patch_all()
+monkey.patch_socket()
 
 import gevent
 
@@ -31,13 +31,6 @@ def main(port, scan_ip=None, pqueue=None):
     except Exception as e:
         pass
 
-
-# TODO 端口扫描优化
-# 背景：原来的设计性能太差了,参考masscan及zmap,将发包跟收包分开,在控制端口数量
-# 扫描状态表，记录每个端口扫描的情况，{obj,dm,ip,port,send_time,retry,status}
-# 思路
-# 1、先一次将多有端口探测的包发出去,记录状态(0,未发送  1,已发送  2,已回复  3,丢弃)
-# 2、一定时间检查一下状态表是都有响应,如果send_time超过一定时间，则重发，可能丢包了(只重发1次)
 
 # 进度
 def schedule(queue):
@@ -118,6 +111,11 @@ def async_main(port, scan_ip=None, pqueue=None):
         sock.close()
 
 
+# TODO 端口扫描优化
+# 背景：原来的设计性能太差了,参考masscan及zmap,将发包跟收包分开,在控制端口数量
+# 扫描状态表，记录每个端口扫描的情况，{obj,dm,ip,port,send_time,retry,status}
+# 思路
+# 符合协程的工作模式: 尽管发包,不等待响应
 def async_port_scan(rqueue=None):
     """
     :param rqueue:  {dm: [ip,ip1,ip2], dm1: [ip,ip1,ip2]}
@@ -134,7 +132,6 @@ def async_port_scan(rqueue=None):
     # gevent.joinall(threads)
 
     ip_re = re.compile('[A-Za-z]', re.S)  # 判断是否非ip
-    _pool = multiprocessing.Pool(processes=port_processes)
     result = []  # [{dm:[ip:port,dm:port]}]
     dm = ""  # 域名
     total = rqueue.qsize()
@@ -179,8 +176,6 @@ def async_port_scan(rqueue=None):
             result.append({dm: ipps})
         except _queue.Empty:  # on python 2 use Queue.Empty
             break
-    _pool.close()
-    _pool.join()
     print("{}[PortScan] PortScan Over, time: {}{}".format(blue, time.time() - start_dns, end))
     return result
 
@@ -190,7 +185,7 @@ if __name__ == '__main__':
     rqueue = multiprocessing.Manager().Queue()
     rqueue.put(ip)
     start_time = time.time()
-    # async_port_scan(rqueue)
-    port_scan(rqueue)
+    async_port_scan(rqueue)
+    # port_scan(rqueue)
     end_time = time.time()
     print('[time cost] : ' + str(end_time - start_time))
