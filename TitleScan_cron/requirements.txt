@@ -6,3 +6,4 @@ aiohttp
 aiomultiprocess
 dnspython
 scapy
+gevent
