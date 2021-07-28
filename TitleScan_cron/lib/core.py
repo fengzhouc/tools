@@ -112,13 +112,13 @@ def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
     }
     try:
         # 获取请求响应
-        resp = requests.get(_url, headers=headers, verify=False, allow_redirects=redirect, timeout=5)
+        resp = requests.get(_url, headers=headers, verify=False, allow_redirects=redirect, timeout=10)
         result["index_url"] = _url
         result["Location"] = resp.headers.get("Location")
         result["status"] = resp.status_code
-        # 获取title
-        text = resp.text
-        title = getTitle(text)
+        # 获取title, content获取的是bytes类型
+        text = resp.content
+        title = getTitle(text.decode("utf-8", "ignore"))
         result["title"] = title if title else ""
         result["contenthash"] = hash(text)
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
