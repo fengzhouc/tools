@@ -15,7 +15,7 @@ from lib.titleScan import async_scan_process
 
 
 # 将结果写入文件
-def getresult():
+def getresult(target_num):
     """
     从队列中获取结果写到excel
     :return:
@@ -59,8 +59,9 @@ def getresult():
     dline = 0
     eline = 0
     while not STOP_ME:
-        print("{}[Schedule] A:{} B:{} C:{} D:{} E:{} ,total:{} {}".format(yellow, aline, bline, cline, dline, eline,
-                                                                          aline + bline + cline + dline + eline, end),
+        print("{}[Schedule] A:{} B:{} C:{} D:{} E:{} ,total:{} | {:.2%} {}".format(yellow, aline, bline, cline, dline, eline,
+                                                                          aline + bline + cline + dline + eline,
+                                                                          (aline + bline + cline + dline + eline)/target_num, end),
               end="\r")
         if all_results.qsize() > 0:
             allline = writerdata(all, all_results.get(), allline)
@@ -75,7 +76,7 @@ def getresult():
         if e_results.qsize() > 0:
             eline = writerdata(e, e_results.get(), eline)
     wb.save("./report/{}.xls".format(report_filename))
-    print("{}report save success, file name: {}.xls{}".format(green, report_filename, end))
+    print("{}[Report] save success, file name: {}.xls{}".format(green, report_filename, end))
 
 
 def writerdata(worksheet, message, row):
@@ -114,7 +115,7 @@ def main(all_results, a_results, b_results, c_results, d_results, e_results):
     dns_pool.map(functools.partial(dns_query, rqueue=rqueue), dm_list)
     dns_pool.close()
     dns_pool.join()
-    print("{}[DnsQuery] DnsQuery Over, time: {}.{}".format(blue, time.time() - start_dns, end))
+    print("{}[DnsQuery] DnsQuery Over, times: {}.{}".format(blue, time.time() - start_dns, end))
 
     time.sleep(1)
     # 端口扫描，返回端口跟域名/ip组合的列表
@@ -125,13 +126,16 @@ def main(all_results, a_results, b_results, c_results, d_results, e_results):
     time.sleep(1)
     target_num = 0
     for i in targets:
-        target_num += len(i.values()[0])
+        target_num += len(list(i.values())[0])
     print("{}[TiltleScan] Start ScanProcess...., total: {} {}".format(blue, target_num, end))
     # 处理队列中结果的线程
-    threading.Thread(target=getresult).start()
+    threading.Thread(target=getresult, args=(target_num,)).start()
+    start = time.time()
     # titlescan
     async_scan_process(targets, result_queue=(all_results, a_results, b_results, c_results, d_results, e_results))
-
+    print("\n{}[TiltleScan] All Over, times: {}. {}".format(blue,time.time() - start, end))
+    print("\n{}[TiltleScan] Please waiting for report.... {}\n".format(blue, end))
+    time.sleep(5)
 
 if __name__ == "__main__":
 
@@ -154,4 +158,4 @@ if __name__ == "__main__":
         print('\n{}[__main__.exception] {} {}{}'.format(red, type(e), str(e), end))
     finally:
         STOP_ME = True
-        print("\n{}All done, times:{}{}".format(green, time.time() - start, end))
+        print("\n{}[TiltleScan] All done, times:{}{}".format(green, time.time() - start, end))
