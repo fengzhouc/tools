@@ -2,7 +2,7 @@
 import os
 
 # 协程并发数
-processes = 100
+processes = 500
 
 # DNS解析设置
 resolver_nameservers = [
