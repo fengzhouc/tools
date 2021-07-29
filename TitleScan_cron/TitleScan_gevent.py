@@ -2,6 +2,7 @@
 import asyncio
 import functools
 import multiprocessing
+import os
 import threading
 import time
 
@@ -111,7 +112,7 @@ def main(all_results, a_results, b_results, c_results, d_results, e_results):
     # rqueue是结果队列, {dm: [ip,ip1,ip2], dm1: [ip,ip1,ip2]}
     rqueue = multiprocessing.Manager().Queue()
     start_dns = time.time()
-    dns_pool = multiprocessing.Pool(processes=_pool)
+    dns_pool = multiprocessing.Pool(processes=os.cpu_count())
     dns_pool.map(functools.partial(dns_query, rqueue=rqueue), dm_list)
     dns_pool.close()
     dns_pool.join()
@@ -120,7 +121,7 @@ def main(all_results, a_results, b_results, c_results, d_results, e_results):
     time.sleep(1)
     # 端口扫描，返回端口跟域名/ip组合的列表
     # 预期返回: [{dm:[ip:port,dm:port]}]
-    targets = async_port_scan(rqueue)
+    targets = async_port_scan(rqueue, pros=_pool)
 
     # targets = [{dm.strip(): [dm.strip(), ]} for dm in dm_list]
     time.sleep(1)
@@ -132,10 +133,7 @@ def main(all_results, a_results, b_results, c_results, d_results, e_results):
     threading.Thread(target=getresult, args=(target_num,)).start()
     start = time.time()
     # titlescan
-    async_scan_process(targets, result_queue=(all_results, a_results, b_results, c_results, d_results, e_results))
-    print("\n{}[TiltleScan] All Over, times: {}. {}".format(blue,time.time() - start, end))
-    print("\n{}[TiltleScan] Please waiting for report.... {}\n".format(blue, end))
-    time.sleep(5)
+    async_scan_process(targets, result_queue=(all_results, a_results, b_results, c_results, d_results, e_results), pros=_pool)
 
 if __name__ == "__main__":
 
@@ -150,6 +148,8 @@ if __name__ == "__main__":
         e_results = multiprocessing.Manager().Queue()
 
         main(all_results, a_results, b_results, c_results, d_results, e_results)
+        # 主线程阻塞，为了让写报告的线程再继续写入，防止丢失结果
+        time.sleep(5)
 
     except KeyboardInterrupt as e:
         print('\n{}You aborted the scan.{}'.format(yellow, end))
@@ -157,5 +157,6 @@ if __name__ == "__main__":
     except Exception as e:
         print('\n{}[__main__.exception] {} {}{}'.format(red, type(e), str(e), end))
     finally:
+        print("\n{}[TiltleScan] All done, Please waiting for report...., times:{}{}".format(green, time.time() - start,
+                                                                                            end))
         STOP_ME = True
-        print("\n{}[TiltleScan] All done, times:{}{}".format(green, time.time() - start, end))

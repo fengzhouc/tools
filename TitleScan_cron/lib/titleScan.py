@@ -5,7 +5,9 @@ from gevent import monkey
 # gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
 monkey.patch_socket()
 import gevent
+from gevent.pool import Pool
 from lib.core import getStatusAndTitle
+from lib.config import processes
 
 
 # 设置超时时间，防止请求时间过长导致程序长时间停止
@@ -18,10 +20,14 @@ keyworkd = ["访问拦截",
             "网站访问报错", ]
 
 
-def async_scan_process(targets, result_queue=None):
+def async_scan_process(targets, result_queue=None, pros=None):
     threads = []
+    if pros:
+        pool = Pool(pros)
+    else:
+        pool = Pool(processes)
     for target in targets:
-        threads.append(gevent.spawn(scan_process, target, result_queue=result_queue))
+        threads.append(pool.spawn(scan_process, target, result_queue=result_queue))
     gevent.joinall(threads)
 
 

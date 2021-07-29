@@ -3,9 +3,10 @@
 import _queue
 import multiprocessing
 
+from gevent.pool import Pool
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
-from lib.config import port_processes, ports, yellow, end, red, blue
+from lib.config import processes, ports, yellow, end, red, blue
 
 from gevent import monkey
 # gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
@@ -48,7 +49,7 @@ def port_scan(rqueue=None):
     :return:  [{dm:[ip:port,dm:port]}]
     """
     ip_re = re.compile('[A-Za-z]', re.S)  # 判断是否非ip
-    _pool = multiprocessing.Pool(processes=port_processes)
+    _pool = multiprocessing.Pool(processes=processes)
     result = []  # [{dm:[ip:port,dm:port]}]
     dm = ""  # 域名
     total = rqueue.qsize()
@@ -116,7 +117,7 @@ def async_main(port, scan_ip=None, pqueue=None):
 # 扫描状态表，记录每个端口扫描的情况，{obj,dm,ip,port,send_time,retry,status}
 # 思路
 # 符合协程的工作模式: 尽管发包,不等待响应
-def async_port_scan(rqueue=None):
+def async_port_scan(rqueue=None, pros=None):
     """
     :param rqueue:  {dm: [ip,ip1,ip2], dm1: [ip,ip1,ip2]}
     :return:  [{dm:[ip:port,dm:port]}]
@@ -124,6 +125,11 @@ def async_port_scan(rqueue=None):
     result = []  # [{dm:[ip:port,dm:port]}]
     # 协程任务池
     threads = []
+    # if pros:
+    #     pool = Pool(pros)
+    # else:
+    #     pool = Pool(processes)
+    pool = Pool(processes)
 
     ip_re = re.compile('[A-Za-z]', re.S)  # 判断是否非ip
     result = []  # [{dm:[ip:port,dm:port]}]
@@ -153,7 +159,7 @@ def async_port_scan(rqueue=None):
                                                                                     end))
                 pqueue = multiprocessing.Manager().Queue()
                 for port in ports:
-                    threads.append(gevent.spawn(async_main, port, scan_ip=ip, pqueue=pqueue))
+                    threads.append(pool.spawn(async_main, port, scan_ip=ip, pqueue=pqueue))
                 gevent.joinall(threads)
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
                 while True:
