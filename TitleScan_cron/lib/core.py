@@ -180,4 +180,4 @@ if __name__ == "__main__":
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(task)
     # print("all done, {}".format(time.time() - start))
-    getStatusAndTitle("a", "home.cvte.com")
+    getStatusAndTitle("a", "www.baidu.com")
