@@ -8,11 +8,11 @@ import time
 import xlwt
 from aiomultiprocess import Pool
 from lib.cmdline import parse_args
-from lib.core import getStatusAndTitle
+from lib.core import getStatusAndTitle1
 
 from lib.config import yellow, green, red, blue, end, processes
 from lib.dnsQuery import dns_query
-from lib.portScan import port_scan, async_port_scan
+from lib.portScan import port_scan
 
 # 设置超时时间，防止请求时间过长导致程序长时间停止
 socket.setdefaulttimeout(5)
@@ -38,13 +38,13 @@ async def scan_process(target, result_queue=None):
     target_dict = {}
     for dm in ips:
         # 获取不存在资源的响应信息，不跟进重定向，getStatusAndTitle函数已处理
-        http_mess = await getStatusAndTitle(domain, dm)
+        http_mess = await getStatusAndTitle1(domain, dm)
         # http状态码400 或者请求失败时尝试https
         if http_mess.get("status") == 400 or http_mess.get("status") is None:
-            https_mess = await getStatusAndTitle(domain, dm, https=True)
+            https_mess = await getStatusAndTitle1(domain, dm, https=True)
             target_dict[https_mess["index_url"]] = https_mess
         elif str(http_mess.get("status")).startswith("30"):
-            https_mess = await getStatusAndTitle(domain, dm, https=True)
+            https_mess = await getStatusAndTitle1(domain, dm, https=True)
             # 请求失败时,则只支持http
             if https_mess.get("status") is None:
                 target_dict[http_mess["index_url"]] = http_mess
@@ -58,7 +58,7 @@ async def scan_process(target, result_queue=None):
                 target_dict[http_mess["index_url"]] = http_mess
                 target_dict[https_mess["index_url"]] = https_mess
         else:
-            https_mess = await getStatusAndTitle(domain, dm, https=True)
+            https_mess = await getStatusAndTitle1(domain, dm, https=True)
             # 如果状态码即title都相同，则认为是同一个站点，支持http/https
             if http_mess.get("status") == https_mess.get("status") and http_mess.get("title") == https_mess.get("title"):
                 target_dict[http_mess["index_url"]] = http_mess
@@ -107,7 +107,7 @@ async def scan_process(target, result_queue=None):
                     r.put(index_mess.values())
         # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
-            i_mess = await getStatusAndTitle(domain, dm, index=True, redirect=True, https=_https)
+            i_mess = await getStatusAndTitle1(domain, dm, index=True, redirect=True, https=_https)
             all_results.put(i_mess.values())  # 添加到汇总队列
             # 这里可能会出现协议转换的302,跟进302,看是否访问正常，确定是协议转换则抛弃
             if _mess.get("index_url").split("://")[0] != i_mess.get("index_url").split("://")[0]:
@@ -165,7 +165,7 @@ async def getindexmess(domain, dm, mess404, _https, a_results, b_results, c_resu
     :return:  站点分类，A,B,C,D,E
     """
     # 请求主页信息
-    _mess_index = await getStatusAndTitle(domain, dm, index=True, https=_https)
+    _mess_index = await getStatusAndTitle1(domain, dm, index=True, https=_https)
     # 特殊错误识别，相似度比较
     if _mess_index.get("title") in keyworkd or \
             (_mess_index.get("status") == mess404.get("status") and

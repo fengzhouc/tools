@@ -90,6 +90,7 @@ def getTitle(resp):
         return title[0]
     return None
 
+
 def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
     """
     发送请求，获取状态码及title
@@ -146,6 +147,7 @@ def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
     # print(result)
     return result
 
+
 def getUrl(domain, index=False, https=False):
     """
     根据域名生成随机的url，指向不存在的资源;；返回随机url
@@ -166,6 +168,7 @@ def getUrl(domain, index=False, https=False):
     # print(_url)
     return _url
 
+
 async def aiomul():
     # dm_list = open("../vipshop.com_sub.txt").readlines()
     dm_list = ["112.65.142.187:443",]
@@ -180,4 +183,4 @@ if __name__ == "__main__":
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(task)
     # print("all done, {}".format(time.time() - start))
-    print(getStatusAndTitle("a", "doc.mindlinker.com"))
+    print(getStatusAndTitle("a", "doc.com"))
