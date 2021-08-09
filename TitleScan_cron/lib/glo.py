@@ -21,7 +21,7 @@ def get_value(key, defValue=None):
     try:
         return _global_dict[key]
     except KeyError:
-        pass
+        return defValue
 
 
 def get_all():
