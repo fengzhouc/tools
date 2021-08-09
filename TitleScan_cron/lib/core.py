@@ -84,7 +84,7 @@ def getTitle(resp):
     :return: title文本
     """
     # print("getTitle: ", resp)
-    key = "<title\s*\S*>(.*)</title>"
+    key = "<title.*?>(.*)</title>"
     title = re.findall(key, resp)
     if title:
         return title[0]
