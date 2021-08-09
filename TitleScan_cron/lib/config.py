@@ -1,7 +1,7 @@
 # encoding=utf-8
 import os
 
-# 协程并发数
+# 协程并发数,portScan
 processes = 500
 
 # DNS解析设置

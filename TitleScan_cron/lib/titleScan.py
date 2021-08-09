@@ -8,6 +8,7 @@ import gevent
 from gevent.pool import Pool
 from lib.core import getStatusAndTitle
 from lib.config import processes
+from lib import glo
 
 
 # 设置超时时间，防止请求时间过长导致程序长时间停止
@@ -20,18 +21,18 @@ keyworkd = ["访问拦截",
             "网站访问报错", ]
 
 
-def async_scan_process(targets, result_queue=None, pros=None):
+def async_scan_process(targets, pros=None):
     threads = []
     if pros:
         pool = Pool(pros)
     else:
         pool = Pool(processes)
     for target in targets:
-        threads.append(pool.spawn(scan_process, target, result_queue=result_queue))
+        threads.append(pool.spawn(scan_process, target))
     gevent.joinall(threads)
 
 
-def scan_process(target, result_queue=None):
+def scan_process(target):
     """
     主逻辑
     :param target: 扫描目标 {domain, [ip:port,dm:port]}
@@ -39,7 +40,8 @@ def scan_process(target, result_queue=None):
     :return:
     """
     # 不同分类的结果队列
-    all_results, a_results, b_results, c_results, d_results, e_results = result_queue
+    # all_results, a_results, b_results, c_results, d_results, e_results = result_queue
+    all_results, a_results, b_results, c_results, d_results, e_results = glo.get_all().values()
     domain = list(target.keys())[0]  # 域名
     ips = list(target.values())[0]  # 域名/ip组合端口的所有数据
     # 扫描列表，主要是http/https两种协议

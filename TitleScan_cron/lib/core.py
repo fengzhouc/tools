@@ -111,7 +111,7 @@ def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
         'Referer': _url,
     }
     try:
-        # 获取请求响应
+        # 获取请求响应, timeout=10
         resp = requests.get(_url, headers=headers, verify=False, allow_redirects=redirect, timeout=10)
         result["index_url"] = _url
         result["Location"] = resp.headers.get("Location")
@@ -180,4 +180,4 @@ if __name__ == "__main__":
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(task)
     # print("all done, {}".format(time.time() - start))
-    getStatusAndTitle("a", "www.baidu.com")
+    print(getStatusAndTitle("a", "doc.mindlinker.com"))

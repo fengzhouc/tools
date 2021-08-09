@@ -13,6 +13,8 @@ from lib.config import yellow, green, red, blue, end, processes
 from lib.dnsQuery import dns_query
 from lib.portScan import async_port_scan
 from lib.titleScan import async_scan_process
+from gevent.queue import Queue
+from lib import glo
 
 
 # 将结果写入文件
@@ -96,7 +98,7 @@ def writerdata(worksheet, message, row):
 
 
 
-def main(all_results, a_results, b_results, c_results, d_results, e_results):
+def main():
     # 命令行获取domain file
     argv = parse_args()
     args_file = argv.f
@@ -131,23 +133,29 @@ def main(all_results, a_results, b_results, c_results, d_results, e_results):
     print("{}[TiltleScan] Start ScanProcess...., total: {} {}".format(blue, target_num, end))
     # 处理队列中结果的线程
     threading.Thread(target=getresult, args=(target_num,)).start()
-    start = time.time()
     # titlescan
-    async_scan_process(targets, result_queue=(all_results, a_results, b_results, c_results, d_results, e_results), pros=_pool)
+    async_scan_process(targets, pros=os.cpu_count())
 
 if __name__ == "__main__":
 
     STOP_ME = False
+    glo._init()
     start = time.time()
     try:
-        all_results = multiprocessing.Manager().Queue()
-        a_results = multiprocessing.Manager().Queue()
-        b_results = multiprocessing.Manager().Queue()
-        c_results = multiprocessing.Manager().Queue()
-        d_results = multiprocessing.Manager().Queue()
-        e_results = multiprocessing.Manager().Queue()
+        all_results = Queue()
+        glo.set_value("all", all_results)
+        a_results = Queue()
+        glo.set_value("a", a_results)
+        b_results = Queue()
+        glo.set_value("b", b_results)
+        c_results = Queue()
+        glo.set_value("c", c_results)
+        d_results = Queue()
+        glo.set_value("d", d_results)
+        e_results = Queue()
+        glo.set_value("e", e_results)
 
-        main(all_results, a_results, b_results, c_results, d_results, e_results)
+        main()
         # 主线程阻塞，为了让写报告的线程再继续写入，防止丢失结果
         time.sleep(5)
 
