@@ -13,7 +13,7 @@ def parse_args():
 
     parser.add_argument("-f", help="Load new line delimited targets from file(domain/ip)")
 
-    parser.add_argument("-p", help="multiprocessing pool size, default:os.cpu_count()")
+    parser.add_argument("-p", help="titlescan task run, default:os.cpu_count()")
 
     if len(sys.argv) == 1:
         sys.argv.append("-h")

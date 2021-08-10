@@ -1,5 +1,10 @@
 # encoding=utf-8
 
+import gevent
+# from gevent import monkey
+# gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
+# monkey.patch_socket()
+
 import _queue
 import multiprocessing
 
@@ -8,11 +13,7 @@ from scapy.all import *
 from scapy.layers.inet import IP, TCP
 from lib.config import processes, ports, yellow, end, red, blue
 
-from gevent import monkey
-# gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
-monkey.patch_socket()
 
-import gevent
 
 
 # 主逻辑
@@ -125,11 +126,10 @@ def async_port_scan(rqueue=None, pros=None):
     result = []  # [{dm:[ip:port,dm:port]}]
     # 协程任务池
     threads = []
-    # if pros:
-    #     pool = Pool(pros)
-    # else:
-    #     pool = Pool(processes)
-    pool = Pool(processes)
+    if pros:
+        pool = Pool(pros)
+    else:
+        pool = Pool(processes)
 
     ip_re = re.compile('[A-Za-z]', re.S)  # 判断是否非ip
     result = []  # [{dm:[ip:port,dm:port]}]

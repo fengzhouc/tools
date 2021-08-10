@@ -1,18 +1,18 @@
 # encoding=utf-8
 
-import socket
-from gevent import monkey
-# gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
-monkey.patch_socket()
 import gevent
+# from gevent import monkey
+# gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
+# monkey.patch_socket()
+# monkey.patch_ssl()
+
 from gevent.pool import Pool
+from gevent.queue import Queue
+
 from lib.core import getStatusAndTitle
 from lib.config import processes
 from lib import glo
 
-
-# 设置超时时间，防止请求时间过长导致程序长时间停止
-socket.setdefaulttimeout(5)
 
 # 这里是状态码200的错误页面的关键字，后续需要更新以保证正确性
 _key404 = ["404", "找不到", "Not Found"]
@@ -22,6 +22,12 @@ keyworkd = ["访问拦截",
 
 
 def async_scan_process(targets, pros=None):
+    """
+
+   :param targets: [{dm:[ip:port,dm:port]}]
+   :param pros:os.spu_count()
+   :return:
+   """
     threads = []
     if pros:
         pool = Pool(pros)
@@ -206,4 +212,20 @@ def getindexmess(domain, dm, mess404, _https, a_results, b_results, c_results, d
         return e_results, _mess_index
 
 
-
+if __name__ == "__main__":
+    glo._init()
+    all_results = Queue()
+    glo.set_value("all", all_results)
+    a_results = Queue()
+    glo.set_value("a", a_results)
+    b_results = Queue()
+    glo.set_value("b", b_results)
+    c_results = Queue()
+    glo.set_value("c", c_results)
+    d_results = Queue()
+    glo.set_value("d", d_results)
+    e_results = Queue()
+    glo.set_value("e", e_results)
+    t = [{"a": ["3.24.119.219:443","112.53.42.125:587","112.53.42.125:995","112.53.42.125:993","120.232.22.49:25","boe.mindlinker.com:80","120.232.22.49:110","120.232.22.49:143","120.232.22.49:465","120.232.22.49:993","120.232.22.49:587","120.232.22.49:843","smtp.bytello.com:843","120.232.22.49:995","120.232.27.164:25","120.232.27.164:110","120.232.27.164:143","120.232.27.164:465","120.232.27.164:587","120.232.27.164:993","120.232.27.164:995","20.79.64.165:80","eus-azure-http-external.bytello.com:80","20.79.64.165:443"]}]
+    async_scan_process(t, pros=4)
+    pass
