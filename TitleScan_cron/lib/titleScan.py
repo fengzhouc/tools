@@ -28,14 +28,13 @@ def async_scan_process(targets, pros=None):
    :param pros:os.spu_count()
    :return:
    """
-    threads = []
     if pros:
         pool = Pool(pros)
     else:
         pool = Pool(processes)
     for target in targets:
-        threads.append(pool.spawn(scan_process, target))
-    gevent.joinall(threads)
+        pool.spawn(scan_process, target)
+    pool.join()
 
 
 def scan_process(target):
