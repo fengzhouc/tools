@@ -172,5 +172,6 @@ if __name__ == "__main__":
         print('\n{}[__main__.exception] {} {}{}'.format(red, type(e), str(e), end))
     finally:
         STOP_ME = True
+        time.sleep(1)
         print("\n{}[TiltleScan] All done, Please waiting for report, times:{}{}".format(green, time.time() - start,
                                                                                             end))
