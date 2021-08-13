@@ -5,6 +5,7 @@ from gevent import monkey
 # 这个需要放置在最前。虽然实际使用是在子模块，不然会有告警，影响程序执行
 monkey.patch_socket()
 monkey.patch_ssl()
+monkey.patch_queue()
 
 import functools
 import multiprocessing
@@ -73,17 +74,17 @@ def getresult(target_num):
                                                                           (aline + bline + cline + dline + eline)/target_num, end),
               end="\r")
         if all_results.qsize() > 0:
-            allline = writerdata(all, all_results.get(), allline)
+            allline = writerdata(all, all_results.get_nowait(), allline)
         if a_results.qsize() > 0:
-            aline = writerdata(a, a_results.get(), aline)
+            aline = writerdata(a, a_results.get_nowait(), aline)
         if b_results.qsize() > 0:
-            bline = writerdata(b, b_results.get(), bline)
+            bline = writerdata(b, b_results.get_nowait(), bline)
         if c_results.qsize() > 0:
-            cline = writerdata(c, c_results.get(), cline)
+            cline = writerdata(c, c_results.get_nowait(), cline)
         if d_results.qsize() > 0:
-            dline = writerdata(d, d_results.get(), dline)
+            dline = writerdata(d, d_results.get_nowait(), dline)
         if e_results.qsize() > 0:
-            eline = writerdata(e, e_results.get(), eline)
+            eline = writerdata(e, e_results.get_nowait(), eline)
     wb.save("./report/{}.xls".format(report_filename))
     print("{}[Report] save success, file name: {}.xls{}".format(green, report_filename, end))
 
