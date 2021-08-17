@@ -208,7 +208,7 @@ def main():
     if argv.p:
         _pool = int(argv.p)
     # 读取所有域名，并去重
-    dm_list = [tg.strip() for tg in list(set(open(args_file).readlines())) if tg != ""]
+    dm_list = [tg.strip() for tg in list(set(open(args_file).readlines())) if tg.strip() != ""]
     print("{}[TitleScan] all domain total: {}{}".format(blue, len(dm_list), end))
     # 查询每个域名的ip
     print("{}[DnsQuery] Start dnsQuery......{}".format(blue, end))
