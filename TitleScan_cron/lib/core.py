@@ -1,9 +1,5 @@
 # encoding=utf-8
 
-# from gevent import monkey
-# # gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
-# monkey.patch_socket()
-
 import re
 import string
 import random

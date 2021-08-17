@@ -1,11 +1,5 @@
 # encoding=utf-8
 
-import gevent
-# from gevent import monkey
-# gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
-# monkey.patch_socket()
-# monkey.patch_ssl()
-
 from gevent.pool import Pool
 from gevent.queue import Queue
 
@@ -90,8 +84,8 @@ def scan_process(target):
 
         # 这里不会有http 400的情况，上面做了过滤，如果http 400 ，则target_dict中只有https
         if _mess.get("status") == 400 and _https:
-            c_results.put(_mess.values())
-            all_results.put(_mess.values())
+            c_results.put(_mess)
+            all_results.put(_mess)
             continue
 
         # 不存在目录请求状态码200，进行分支访问主页继续判断
@@ -103,71 +97,71 @@ def scan_process(target):
                     break
             # 如果包含关键字，则是状态码为200的错误页面，这种情况错误处理是自定义的，基本可以判断是正常网站，直接存入A类
             if _is404:
-                a_results.put(_mess.values())
-                all_results.put(_mess.values())  # 添加到汇总队列
+                a_results.put(_mess)
+                all_results.put(_mess)  # 添加到汇总队列
             # 如果不包含，则需要进一步确认主页
             else:
                 # _checkcentent=True, 不存在目录跟主页状态码都在200的情况下进行相似度比较
                 r, index_mess = getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results,
                                                    d_results, e_results, _checkcentent=True)
-                all_results.put(index_mess.values())  # 添加到汇总队列
+                all_results.put(index_mess)  # 添加到汇总队列
                 # 主页如果属于D类，即状态码501/502/503/504/请求失败，则重新请求请求再确认一次
                 if r is d_results:
                     # 以第二次访问的结果为准保存
                     r, index_mess = getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results,
                                                        d_results, e_results, _checkcentent=True)
-                    r.put(index_mess.values())
+                    r.put(index_mess)
                 # 其他类的结果
                 else:
-                    r.put(index_mess.values())
+                    r.put(index_mess)
         # 不存在目录请求状态码30x，A类
         elif str(_mess.get("status")).startswith("30"):
             i_mess = getStatusAndTitle(domain, dm, index=True, redirect=True, https=_https)
-            all_results.put(i_mess.values())  # 添加到汇总队列
+            all_results.put(i_mess)  # 添加到汇总队列
             # 这里可能会出现协议转换的302,跟进302,看是否访问正常，确定是协议转换则抛弃
             if _mess.get("index_url").split("://")[0] != i_mess.get("index_url").split("://")[0]:
                 pass
             elif i_mess.get("status") in [200, 302]:
-                a_results.put(i_mess.values())
+                a_results.put(i_mess)
             elif i_mess.get("status") in [404, ]:
-                c_results.put(i_mess.values())
+                c_results.put(i_mess)
             elif i_mess.get("status") in [401, 407, 415]:
-                b_results.put(i_mess.values())
+                b_results.put(i_mess)
             elif (i_mess.get("status") is None) or (i_mess.get("status") in [501, 502, 503, 504]):
-                d_results.put(i_mess.values())
+                d_results.put(i_mess)
             # 预料之外的情况，需要关注，以完善工具
             else:
-                e_results.put(_mess.values())
+                e_results.put(_mess)
         # 不存在目录请求状态码404，进行分支访问主页继续判断
         elif _mess.get("status") == 404:
             r, index_mess = getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results, d_results, e_results)
-            all_results.put(index_mess.values())  # 添加到汇总队列
+            all_results.put(index_mess)  # 添加到汇总队列
             # 如果是D类，则重新请求再确认一次
             if r is d_results:
                 # 以第二次访问的结果为准保存
                 r, index_mess = getindexmess(domain, dm, _mess, _https, a_results, b_results, c_results,
                                                    d_results, e_results)
-                r.put(index_mess.values())
+                r.put(index_mess)
             # 其他类的结果
             else:
-                r.put(index_mess.values())
+                r.put(index_mess)
 
         # 不存在目录请求状态码是否401,407,415，都是需要认证的,大概率正常网站，因为做了认证
         elif _mess.get("status") in [401, 407, 415]:
-            b_results.put(_mess.values())
-            all_results.put(_mess.values())  # 添加到汇总队列
+            b_results.put(_mess)
+            all_results.put(_mess)  # 添加到汇总队列
         # 不存在目录请求状态码403，500，小概率正常网站
         elif _mess.get("status") in [403, 500]:
-            c_results.put(_mess.values())
-            all_results.put(_mess.values())  # 添加到汇总队列
+            c_results.put(_mess)
+            all_results.put(_mess)  # 添加到汇总队列
         # 不存在目录请求状态码是否501，502，503，504及没有，不存在目录返回这些状态码，说明不是正常网站
         elif (_mess.get("status") is None) or (_mess.get("status") in [501, 502, 503, 504]):
-            d_results.put(_mess.values())
-            all_results.put(_mess.values())  # 添加到汇总队列
+            d_results.put(_mess)
+            all_results.put(_mess)  # 添加到汇总队列
         # 预料之外的情况，需要关注，以完善工具
         else:
-            e_results.put(_mess.values())
-            all_results.put(_mess.values())  # 添加到汇总队列
+            e_results.put(_mess)
+            all_results.put(_mess)  # 添加到汇总队列
 
 
 def getindexmess(domain, dm, mess404, _https, a_results, b_results, c_results, d_results, e_results, _checkcentent=False):
