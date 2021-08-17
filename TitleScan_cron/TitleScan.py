@@ -190,7 +190,7 @@ def getresult(target_num):
                 eline += 1
         except Exception as e:
             print("{}[Report] {} {}".format(red, e, end))
-    print("\n{}[Report] save success, dir name: {} {}".format(green, report_dir, end))
+    print("\n{}[Report] save success, report_dir: {} {}".format(green, report_dir, end))
     f1.close()
     f2.close()
     f3.close()
