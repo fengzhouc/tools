@@ -114,10 +114,10 @@ from lib import glo
 def getresult(target_num):
     """
     从队列中获取结果写到csv
-    queue: dict {'target_domain', 'original_domain', 'index_url', "Location", 'status', 'title', 'contenthash'}
+    queue: dict {'target_domain', 'original_domain', 'index_url', "Location", 'status', 'title', 'contenthash', 'headers'}
     :return:
     """
-    column_keys = ['target_domain', 'original_domain', 'index_url', "Location", 'status', 'title', 'contenthash']
+    column_keys = ['target_domain', 'original_domain', 'index_url', "Location", 'status', 'title', 'contenthash', 'headers']
     # 报告文件名以时间
     report_dir = time.strftime("%Y%m%d%H%M%S", time.localtime())
     # 根据时间创建目录

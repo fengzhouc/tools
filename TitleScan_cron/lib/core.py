@@ -56,6 +56,7 @@ def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
         title = getTitle(text.decode("utf-8", "ignore"))
         result["title"] = title if title else ""
         result["contenthash"] = hash(text)
+        result["headers"] = resp.headers
     # python异常 https://blog.csdn.net/polyhedronx/article/details/81589196
     except RuntimeError as e:
         # print("{}[EXCEPT] {} {} {}".format(red, _url, "connect error", end))
@@ -65,10 +66,12 @@ def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
         result["status"] = None
         result["title"] = str(e)
         result["contenthash"] = None
+        result["headers"] = None
     except UnicodeDecodeError as e:
         # 编码不一致的情况，或者响应不是文本，而是二进制流
         result["title"] = str(e)
         result["contenthash"] = None
+        result["headers"] = None
     except socket.error as e:
         # winerror 10054 连接重置,可能还是个站点，但出现了某种去情况，手动试试
         result["index_url"] = _url
@@ -76,6 +79,7 @@ def getStatusAndTitle(domain, target, index=False, https=False, redirect=False):
         result["status"] = None
         result["title"] = str(e)
         result["contenthash"] = None
+        result["headers"] = None
     finally:
         pass
     # print(result)
