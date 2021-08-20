@@ -2,7 +2,7 @@
 import os
 
 # 协程并发数,portScan
-processes = 500
+processes = 200
 
 # DNS解析设置
 resolver_nameservers = [
