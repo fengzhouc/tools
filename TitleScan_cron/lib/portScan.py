@@ -1,11 +1,11 @@
 # encoding=utf-8
 
 
-from gevent import monkey
+from gevent import monkey, queue
+
 # gevent需要修改Python自带的一些标准库，这一过程在启动时通过monkey patch完成
 monkey.patch_socket()
 
-import _queue
 
 from gevent.pool import Pool
 from gevent.queue import Queue
@@ -112,10 +112,10 @@ def async_port_scan(rqueue=None, pros=None):
                             ipps.append(ipp)
                         if dmp not in ipps:
                             ipps.append(dmp)
-                    except _queue.Empty:  # on python 2 use Queue.Empty
+                    except queue.Empty:  # on python 2 use Queue.Empty
                         break
             result.append({dm: ipps})
-        except _queue.Empty:  # on python 2 use Queue.Empty
+        except queue.Empty:  # on python 2 use Queue.Empty
             break
     print("{}[PortScan] PortScan Over, time: {}{}".format(blue, time.time() - start_dns, end))
     return result
