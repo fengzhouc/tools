@@ -11,7 +11,7 @@ from gevent.pool import Pool
 from gevent.queue import Queue
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
-from config import processes, ports, yellow, end, red, blue
+from lib.config import processes, ports, yellow, end, red, blue
 
 
 # 主逻辑: 半连接
