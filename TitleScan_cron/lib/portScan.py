@@ -24,7 +24,7 @@ def main(port, scan_ip=None, pqueue=None):
         if send.haslayer('TCP'):
             if send['TCP'].flags == 'SA':  # 判断目标主机是否返回 SYN+ACK
                 send_1 = sr1(IP(dst=scan_ip) / TCP(dport=port, flags='R'), timeout=2, verbose=0)  # 只向目标主机发送 RST
-                print('{}[PortScan] [+] {} is open{}'.format(yellow, port, end))
+                # print('{}[PortScan] [+] {} is open{}'.format(yellow, port, end))
                 pqueue.put(port)
             elif send['TCP'].flags == 'RA':
                 # 端口未开放
@@ -41,7 +41,7 @@ def async_main(port, scan_ip=None, pqueue=None):
     sock.settimeout(2)  # 设置超时
     try:
         sock.connect(addr)  # 建立完整连接 和telnet相同
-        print(f'{str(str(addr[0]))} :{str(str(addr[1]))} is open')
+        # print(f'{str(str(addr[0]))} :{str(str(addr[1]))} is open')
         pqueue.put(port)
     except:
         pass
