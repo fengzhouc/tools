@@ -28,7 +28,8 @@ def async_scan_process(targets, pros=None):
         pool = Pool(processes)
     for target in targets:
         pool.spawn(scan_process, target)
-
+    # 等待所有任务完成
+    pool.join()
 
 def scan_process(target):
     """
@@ -37,6 +38,7 @@ def scan_process(target):
     :param result_queue: 每类结果的队列
     :return:
     """
+    print("scan_process")
     # 不同分类的结果队列
     # all_results, a_results, b_results, c_results, d_results, e_results = result_queue
     all_results, a_results, b_results, c_results, d_results, e_results = glo.get_all().values()
