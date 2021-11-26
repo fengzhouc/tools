@@ -28,8 +28,7 @@ def async_scan_process(targets, pros=None):
         pool = Pool(processes)
     for target in targets:
         pool.spawn(scan_process, target)
-    # 等待所有任务完成??会导致[WinError 10054] 远程主机强迫关闭了一个现有的连接
-    # pool.join()
+
 
 def scan_process(target):
     """
