@@ -13,6 +13,15 @@ Note: python 3.6
 重构portScan使用gevent做协程并发, 默认并发数500, 可通过config.py修改process参数进行设置
 ### 20210810
 重构其他模块使用gevent做协程并发, titleScan默认并发数os.cpu_count(), 可通过 -p 设置并发数
+### 20220113
+更新数据处理，输入的taget支持domain/ip/url/urlpath
+
+数据处理流如下
+- source: domain/ip/url/urlpath
+- dnsQuery处理后: {source: [ip,ip1,ip2], source: [domain,domain1,domain2]}
+- portScan处理后: [{source: [ip:port,ip1:port,ip2:port]},{source: [domain:port,domain1:port,domain2:port]}]
+- titleScan处理: ip:port,ip1:port,ip2:port,domain:port,domain1:port,domain2:port
+
 
 ## 主逻辑
 流程：访问不存在的资源，响应正常，再请求根目录，根据每个分支不同的状态码进行分类

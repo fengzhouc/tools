@@ -232,6 +232,9 @@ def main():
     for i in targets:
         target_num += len(list(i.values())[0])
     print("{}[TiltleScan] Start ScanProcess...., total: {} {}".format(blue, target_num, end))
+    if target_num == 0:
+        print("{}[WARN] null targets, please check!{}".format(red, end))
+        return
     # 处理队列中结果的线程
     threading.Thread(target=getresult, args=(target_num,)).start()
     # titlescan

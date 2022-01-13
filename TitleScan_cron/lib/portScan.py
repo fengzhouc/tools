@@ -1,5 +1,5 @@
 # encoding=utf-8
-
+from urllib.parse import urlparse
 
 from gevent import monkey, queue
 
@@ -84,7 +84,11 @@ def async_port_scan(rqueue=None, pros=None):
     while True:
         try:
             queue_ip = rqueue.get_nowait()
-            dm = list(queue_ip.keys())[0]  # domain
+            dm = list(queue_ip.keys())[0]  # 流入的domain/ip/url/path
+            # 如果dm是url，则获取域名，默认输入是域名或者ip
+            domain = urlparse("scheme://" + dm).netloc
+            if "http://" in dm or "https://" in dm:
+                domain = urlparse(dm).netloc
             ips = list(queue_ip.values())[0]  # 对应域名的所有ip
             ipps = []  # 域名/ip组合端口的所有数据
             for index, ip in enumerate(ips):
@@ -102,12 +106,13 @@ def async_port_scan(rqueue=None, pros=None):
                 pqueue = Queue()
                 for port in ports:
                     pool.spawn(async_main, port, scan_ip=ip, pqueue=pqueue)
+                pool.join(10000)
                 # TODO 整理结果的数据格式 {dm, [ip:port,dm:port]}
                 while True:
                     try:
                         port = pqueue.get_nowait()
-                        ipp = "{}:{}".format(ip, port)
-                        dmp = "{}:{}".format(dm, port)
+                        ipp = dm.replace(domain, "{}:{}".format(ip, port))
+                        dmp = dm.replace(domain, "{}:{}".format(domain, port))
                         if ipp not in ipps:
                             ipps.append(ipp)
                         if dmp not in ipps:

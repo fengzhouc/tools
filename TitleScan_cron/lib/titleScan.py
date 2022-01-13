@@ -27,7 +27,9 @@ def async_scan_process(targets, pros=None):
     else:
         pool = Pool(processes)
     for target in targets:
+        # scan_process(target)
         pool.spawn(scan_process, target)
+    pool.join(10000)
 
 
 def scan_process(target):

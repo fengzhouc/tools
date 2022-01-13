@@ -94,13 +94,16 @@ def getUrl(domain, index=False, https=False):
     :return: random url
     """
     _domain = domain.strip()
-    # 主页url
-    if not https:
+    # 判断输入是否url
+    if "http://" in _domain or "https://" in _domain:
+        _url = _domain.strip("/") + "/"
+    elif not https:
         _url = "http://{}/".format(_domain)
     else:
         _url = "https://{}/".format(_domain)
     # 字典,大小写字母及数字，用于生成随机url
     flag = string.ascii_letters + string.digits
+    # 主页url
     if not index:
         _url += "".join(random.sample(flag, random.randint(3, 10)))
     # print(_url)
